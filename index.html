@@ -1,0 +1,3701 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ServerDock - Dev Server Manager</title>
+
+    <!-- Favicon - Server stack icon -->
+    <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect fill='%230c0f0d' width='32' height='32' rx='6'/%3E%3Crect fill='%23d4a574' x='6' y='6' width='14' height='4' rx='1'/%3E%3Crect fill='%23d4a574' x='6' y='13' width='14' height='4' rx='1'/%3E%3Crect fill='%23d4a574' x='6' y='20' width='14' height='4' rx='1'/%3E%3Cpath stroke='%23d4a574' stroke-width='1.5' stroke-linecap='round' fill='none' d='M23 14 Q25 12, 23 10'/%3E%3Cpath stroke='%23d4a574' stroke-width='1.5' stroke-linecap='round' fill='none' d='M26 16 Q29 12, 26 8'/%3E%3C/svg%3E">
+
+    <!-- Fonts -->
+    <link href="https://fonts.cdnfonts.com/css/geist" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,400;9..144,500;9..144,600;9..144,700&display=swap" rel="stylesheet">
+
+    <style>
+        /* =================================================================
+           Design Tokens - Multi-Theme System
+           ================================================================= */
+        :root {
+            /* Typography */
+            --font-base: 'Geist', 'Plus Jakarta Sans', -apple-system, BlinkMacSystemFont, sans-serif;
+            --font-display: 'Fraunces', Georgia, serif;
+            --font-mono: 'SF Mono', Monaco, 'Cascadia Code', Consolas, monospace;
+
+            /* Radius */
+            --radius-sm: 4px;
+            --radius-md: 6px;
+            --radius-lg: 8px;
+            --radius-xl: 12px;
+        }
+
+        /* Theme: Dark Camel (Default) */
+        :root,
+        [data-theme="dark-camel"] {
+            --bg-base: #0c0f0d;
+            --bg-surface: #1a1d1b;
+            --bg-raised: #252a27;
+            --bg-elevated: #323832;
+
+            --border-subtle: #2a2f2c;
+            --border-default: #3a3f3c;
+            --border-emphasis: #4a4f4c;
+
+            --text-primary: #fafafa;
+            --text-secondary: #a8a8a8;
+            --text-tertiary: #787878;
+            --text-muted: #585858;
+
+            --accent-primary: #d4a574;
+            --accent-primary-hover: #c9956c;
+            --accent-primary-subtle: #2d251f;
+            --accent-secondary: #cd8264;
+            --accent-secondary-hover: #b87254;
+
+            --semantic-success: #7ab07a;
+            --semantic-error: #cd6464;
+            --semantic-warning: #d4a574;
+
+            --shadow-sm: 0 1px 2px rgba(0,0,0,0.3), 0 1px 3px rgba(0,0,0,0.2);
+            --shadow-md: 0 4px 8px rgba(0,0,0,0.35), 0 2px 4px rgba(0,0,0,0.25);
+            --shadow-lg: 0 12px 28px rgba(0,0,0,0.45), 0 8px 12px rgba(0,0,0,0.35);
+            --shadow-glow-primary: 0 0 24px rgba(212, 165, 116, 0.2);
+            --shadow-glow-success: 0 0 10px rgba(122, 176, 122, 0.5);
+        }
+
+        /* Theme: Light */
+        [data-theme="light"] {
+            --bg-base: #ffffff;
+            --bg-surface: #f8f9fa;
+            --bg-raised: #f0f1f3;
+            --bg-elevated: #e8eaed;
+
+            --border-subtle: #e0e2e5;
+            --border-default: #d0d2d5;
+            --border-emphasis: #b8bac0;
+
+            --text-primary: #1a1a1a;
+            --text-secondary: #5a5a5a;
+            --text-tertiary: #8a8a8a;
+            --text-muted: #ababab;
+
+            --accent-primary: #c9956c;
+            --accent-primary-hover: #b8845b;
+            --accent-primary-subtle: #f5ede5;
+            --accent-secondary: #b87254;
+            --accent-secondary-hover: #a76243;
+
+            --semantic-success: #5a9a5a;
+            --semantic-error: #d64545;
+            --semantic-warning: #c9956c;
+
+            --shadow-sm: 0 1px 2px rgba(0,0,0,0.08), 0 1px 3px rgba(0,0,0,0.06);
+            --shadow-md: 0 4px 8px rgba(0,0,0,0.1), 0 2px 4px rgba(0,0,0,0.08);
+            --shadow-lg: 0 12px 28px rgba(0,0,0,0.15), 0 8px 12px rgba(0,0,0,0.12);
+            --shadow-glow-primary: 0 0 24px rgba(201, 149, 108, 0.25);
+            --shadow-glow-success: 0 0 10px rgba(90, 154, 90, 0.4);
+        }
+
+        /* Theme: Eye Care (Soft Green/Beige) */
+        [data-theme="eye-care"] {
+            --bg-base: #f5f3ed;
+            --bg-surface: #ebe9e0;
+            --bg-raised: #e0ddd1;
+            --bg-elevated: #d5d2c5;
+
+            --border-subtle: #d0cdc0;
+            --border-default: #c0bdb0;
+            --border-emphasis: #a8a599;
+
+            --text-primary: #2d2d2d;
+            --text-secondary: #5a5a52;
+            --text-tertiary: #7a7a70;
+            --text-muted: #9a9a8e;
+
+            --accent-primary: #8b9d6f;
+            --accent-primary-hover: #7a8c5e;
+            --accent-primary-subtle: #e8ede0;
+            --accent-secondary: #a88860;
+            --accent-secondary-hover: #97774f;
+
+            --semantic-success: #7a9d6f;
+            --semantic-error: #c86060;
+            --semantic-warning: #b89860;
+
+            --shadow-sm: 0 1px 2px rgba(0,0,0,0.06), 0 1px 3px rgba(0,0,0,0.04);
+            --shadow-md: 0 4px 8px rgba(0,0,0,0.08), 0 2px 4px rgba(0,0,0,0.06);
+            --shadow-lg: 0 12px 28px rgba(0,0,0,0.12), 0 8px 12px rgba(0,0,0,0.1);
+            --shadow-glow-primary: 0 0 24px rgba(139, 157, 111, 0.2);
+            --shadow-glow-success: 0 0 10px rgba(122, 157, 111, 0.35);
+        }
+
+        /* Theme: High Contrast */
+        [data-theme="high-contrast"] {
+            --bg-base: #000000;
+            --bg-surface: #1a1a1a;
+            --bg-raised: #2a2a2a;
+            --bg-elevated: #3a3a3a;
+
+            --border-subtle: #4a4a4a;
+            --border-default: #6a6a6a;
+            --border-emphasis: #8a8a8a;
+
+            --text-primary: #ffffff;
+            --text-secondary: #e0e0e0;
+            --text-tertiary: #c0c0c0;
+            --text-muted: #a0a0a0;
+
+            --accent-primary: #ffcc66;
+            --accent-primary-hover: #ffbb44;
+            --accent-primary-subtle: #332200;
+            --accent-secondary: #ff9966;
+            --accent-secondary-hover: #ff8844;
+
+            --semantic-success: #66ff66;
+            --semantic-error: #ff6666;
+            --semantic-warning: #ffcc66;
+
+            --shadow-sm: 0 1px 2px rgba(0,0,0,0.5), 0 1px 3px rgba(0,0,0,0.4);
+            --shadow-md: 0 4px 8px rgba(0,0,0,0.6), 0 2px 4px rgba(0,0,0,0.5);
+            --shadow-lg: 0 12px 28px rgba(0,0,0,0.7), 0 8px 12px rgba(0,0,0,0.6);
+            --shadow-glow-primary: 0 0 24px rgba(255, 204, 102, 0.4);
+            --shadow-glow-success: 0 0 10px rgba(102, 255, 102, 0.6);
+        }
+
+        /* Theme: Dark Blue */
+        [data-theme="dark-blue"] {
+            --bg-base: #0a0e1a;
+            --bg-surface: #141b2d;
+            --bg-raised: #1e2840;
+            --bg-elevated: #283653;
+
+            --border-subtle: #2a3550;
+            --border-default: #3a4560;
+            --border-emphasis: #4a5570;
+
+            --text-primary: #e8f0ff;
+            --text-secondary: #a8b8d8;
+            --text-tertiary: #7888a8;
+            --text-muted: #586888;
+
+            --accent-primary: #6b9fff;
+            --accent-primary-hover: #5a8fee;
+            --accent-primary-subtle: #1a2540;
+            --accent-secondary: #8b7fff;
+            --accent-secondary-hover: #7a6fee;
+
+            --semantic-success: #6bdf8b;
+            --semantic-error: #ff6b8b;
+            --semantic-warning: #ffb86b;
+
+            --shadow-sm: 0 1px 2px rgba(0,0,0,0.4), 0 1px 3px rgba(0,0,0,0.3);
+            --shadow-md: 0 4px 8px rgba(0,0,0,0.45), 0 2px 4px rgba(0,0,0,0.35);
+            --shadow-lg: 0 12px 28px rgba(0,0,0,0.55), 0 8px 12px rgba(0,0,0,0.45);
+            --shadow-glow-primary: 0 0 24px rgba(107, 159, 255, 0.25);
+            --shadow-glow-success: 0 0 10px rgba(107, 223, 139, 0.5);
+        }
+
+        /* Theme: Dark Purple */
+        [data-theme="dark-purple"] {
+            --bg-base: #14091a;
+            --bg-surface: #1f142d;
+            --bg-raised: #2a1f40;
+            --bg-elevated: #352a53;
+
+            --border-subtle: #3a2f50;
+            --border-default: #4a3f60;
+            --border-emphasis: #5a4f70;
+
+            --text-primary: #f0e8ff;
+            --text-secondary: #c8b8e8;
+            --text-tertiary: #9888c8;
+            --text-muted: #7868a8;
+
+            --accent-primary: #b88fff;
+            --accent-primary-hover: #a77fee;
+            --accent-primary-subtle: #2a1540;
+            --accent-secondary: #ff8bdf;
+            --accent-secondary-hover: #ee7ace;
+
+            --semantic-success: #8bdf9b;
+            --semantic-error: #ff6b9b;
+            --semantic-warning: #ffb88b;
+
+            --shadow-sm: 0 1px 2px rgba(0,0,0,0.4), 0 1px 3px rgba(0,0,0,0.3);
+            --shadow-md: 0 4px 8px rgba(0,0,0,0.45), 0 2px 4px rgba(0,0,0,0.35);
+            --shadow-lg: 0 12px 28px rgba(0,0,0,0.55), 0 8px 12px rgba(0,0,0,0.45);
+            --shadow-glow-primary: 0 0 24px rgba(184, 143, 255, 0.25);
+            --shadow-glow-success: 0 0 10px rgba(139, 223, 155, 0.5);
+        }
+
+        /* Theme: Dark Cyan */
+        [data-theme="dark-cyan"] {
+            --bg-base: #091a1a;
+            --bg-surface: #142d2d;
+            --bg-raised: #1f4040;
+            --bg-elevated: #2a5353;
+
+            --border-subtle: #2f5050;
+            --border-default: #3f6060;
+            --border-emphasis: #4f7070;
+
+            --text-primary: #e8ffff;
+            --text-secondary: #b8e8e8;
+            --text-tertiary: #88c8c8;
+            --text-muted: #68a8a8;
+
+            --accent-primary: #6bffdf;
+            --accent-primary-hover: #5aeece;
+            --accent-primary-subtle: #1a4040;
+            --accent-secondary: #8bdfff;
+            --accent-secondary-hover: #7aceee;
+
+            --semantic-success: #6bdf9b;
+            --semantic-error: #ff6b8b;
+            --semantic-warning: #ffdf6b;
+
+            --shadow-sm: 0 1px 2px rgba(0,0,0,0.4), 0 1px 3px rgba(0,0,0,0.3);
+            --shadow-md: 0 4px 8px rgba(0,0,0,0.45), 0 2px 4px rgba(0,0,0,0.35);
+            --shadow-lg: 0 12px 28px rgba(0,0,0,0.55), 0 8px 12px rgba(0,0,0,0.45);
+            --shadow-glow-primary: 0 0 24px rgba(107, 255, 223, 0.25);
+            --shadow-glow-success: 0 0 10px rgba(107, 223, 155, 0.5);
+        }
+
+        /* Smooth theme transitions */
+        body {
+            transition: background-color 0.3s ease, color 0.3s ease;
+        }
+
+        .project-card,
+        .log-panel,
+        .modal,
+        .btn,
+        input {
+            transition: background-color 0.3s ease, border-color 0.3s ease, color 0.3s ease;
+        }
+
+        /* =================================================================
+           Reset & Base
+           ================================================================= */
+        *, *::before, *::after {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+
+        body {
+            font-family: var(--font-base);
+            font-size: 14px;
+            line-height: 1.5;
+            background: var(--bg-base);
+            color: var(--text-primary);
+            min-height: 100vh;
+        }
+
+        /* =================================================================
+           Layout
+           ================================================================= */
+        .container {
+            max-width: 900px;
+            margin: 0 auto;
+            padding: 48px 32px;
+        }
+
+        /* =================================================================
+           Header - Character Moment
+           ================================================================= */
+        header {
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-start;
+            margin-bottom: 40px;
+        }
+
+        .brand {
+            position: relative;
+        }
+
+        .title {
+            font-family: var(--font-display);
+            font-size: 42px;
+            font-weight: 400;
+            letter-spacing: -0.02em;
+            color: var(--text-primary);
+            line-height: 1;
+            margin-bottom: 8px;
+        }
+
+        .tagline {
+            font-size: 14px;
+            color: var(--text-secondary);
+        }
+
+        /* Hand-drawn accent - Stacked servers with signal */
+        .server-stack {
+            position: absolute;
+            top: 4px;
+            right: -56px;
+            width: 40px;
+            height: 36px;
+            opacity: 0.45;
+        }
+
+        .server-stack rect {
+            fill: var(--accent-primary);
+            rx: 2;
+        }
+
+        .server-stack .signal {
+            stroke: var(--accent-primary);
+            stroke-width: 1.5;
+            stroke-linecap: round;
+            fill: none;
+        }
+
+        /* =================================================================
+           Labels (V3 and V6 styles)
+           ================================================================= */
+        .label {
+            font-size: 12px;
+            font-weight: 600;
+            letter-spacing: 0.06em;
+            text-transform: uppercase;
+            color: var(--text-tertiary);
+        }
+
+        .label-section {
+            font-size: 12px;
+            font-weight: 600;
+            letter-spacing: 0.06em;
+            text-transform: uppercase;
+            color: var(--accent-primary);
+        }
+
+        /* =================================================================
+           Buttons
+           ================================================================= */
+        .btn {
+            font-family: var(--font-base);
+            font-size: 14px;
+            font-weight: 600;
+            padding: 10px 20px;
+            border-radius: var(--radius-lg);
+            border: none;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        .btn:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+
+        .btn-primary {
+            background: linear-gradient(135deg, var(--accent-primary), var(--accent-primary-hover));
+            color: var(--bg-base);
+            box-shadow: var(--shadow-md), var(--shadow-glow-primary);
+        }
+
+        .btn-primary:hover:not(:disabled) {
+            transform: translateY(-1px);
+            box-shadow: var(--shadow-lg), var(--shadow-glow-primary);
+        }
+
+        .btn-secondary {
+            background: var(--bg-raised);
+            color: var(--text-secondary);
+            border: 1px solid var(--border-default);
+            box-shadow: var(--shadow-sm);
+        }
+
+        .btn-secondary:hover:not(:disabled) {
+            background: var(--bg-elevated);
+            color: var(--text-primary);
+            border-color: var(--border-emphasis);
+        }
+
+        .btn-danger {
+            background: linear-gradient(135deg, var(--semantic-error), #b85454);
+            color: var(--text-primary);
+            box-shadow: var(--shadow-sm);
+        }
+
+        .btn-danger:hover:not(:disabled) {
+            transform: translateY(-1px);
+            box-shadow: var(--shadow-md);
+        }
+
+        .btn-sm {
+            padding: 6px 12px;
+            font-size: 13px;
+        }
+
+        .btn-icon {
+            padding: 6px;
+            background: transparent;
+            color: var(--text-tertiary);
+            border: none;
+            cursor: pointer;
+            border-radius: var(--radius-md);
+            transition: all 0.15s;
+        }
+
+        .btn-icon:hover {
+            background: var(--bg-raised);
+            color: var(--text-primary);
+        }
+
+        /* =================================================================
+           Project Cards
+           ================================================================= */
+        .projects-list {
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+            margin-bottom: 32px;
+        }
+
+        .project-card {
+            background: var(--bg-surface);
+            border-radius: var(--radius-xl);
+            border: 1px solid var(--border-subtle);
+            padding: 20px 24px;
+            display: flex;
+            align-items: center;
+            gap: 16px;
+            transition: all 0.15s;
+            box-shadow: var(--shadow-sm);
+            position: relative;
+        }
+
+        .project-card::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            height: 1px;
+            background: linear-gradient(90deg, transparent, rgba(255,255,255,0.04), transparent);
+            border-radius: var(--radius-xl) var(--radius-xl) 0 0;
+        }
+
+        .project-card:hover {
+            background: var(--bg-raised);
+            border-color: var(--border-default);
+        }
+
+        .project-card.selected {
+            border-left: 3px solid var(--accent-primary);
+            padding-left: 21px;
+        }
+
+        .status-indicator {
+            width: 10px;
+            height: 10px;
+            border-radius: 50%;
+            flex-shrink: 0;
+        }
+
+        .status-indicator.running {
+            background: var(--semantic-success);
+            box-shadow: var(--shadow-glow-success);
+        }
+
+        .status-indicator.external {
+            background: var(--semantic-warning);
+            box-shadow: 0 0 8px rgba(212, 165, 116, 0.4);
+        }
+
+        /* =================================================================
+           Theme Switcher
+           ================================================================= */
+        .theme-switcher {
+            position: relative;
+        }
+
+        .theme-button {
+            padding: 8px 12px;
+            background: var(--bg-raised);
+            border: 1px solid var(--border-default);
+            border-radius: var(--radius-lg);
+            color: var(--text-secondary);
+            cursor: pointer;
+            font-family: var(--font-base);
+            font-size: 13px;
+            font-weight: 500;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            transition: all 0.15s;
+        }
+
+        .theme-button:hover {
+            background: var(--bg-elevated);
+            border-color: var(--border-emphasis);
+            color: var(--text-primary);
+        }
+
+        .theme-icon {
+            width: 16px;
+            height: 16px;
+        }
+
+        .theme-dropdown {
+            position: absolute;
+            right: 0;
+            top: calc(100% + 8px);
+            background: var(--bg-elevated);
+            border: 1px solid var(--border-default);
+            border-radius: var(--radius-lg);
+            padding: 8px;
+            min-width: 200px;
+            z-index: 100;
+            display: none;
+            box-shadow: var(--shadow-lg);
+        }
+
+        .theme-dropdown.show {
+            display: block;
+        }
+
+        .theme-option {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            padding: 10px 12px;
+            border-radius: var(--radius-md);
+            cursor: pointer;
+            transition: background 0.15s;
+            border: none;
+            background: none;
+            width: 100%;
+            text-align: left;
+            font-family: var(--font-base);
+            font-size: 14px;
+            color: var(--text-primary);
+        }
+
+        .theme-option:hover {
+            background: var(--bg-raised);
+        }
+
+        .theme-option.active {
+            background: var(--accent-primary-subtle);
+            color: var(--accent-primary);
+        }
+
+        .theme-preview {
+            width: 24px;
+            height: 24px;
+            border-radius: var(--radius-sm);
+            border: 2px solid var(--border-default);
+            flex-shrink: 0;
+        }
+
+        .theme-preview.dark-camel {
+            background: linear-gradient(135deg, #0c0f0d 50%, #d4a574 50%);
+        }
+
+        .theme-preview.light {
+            background: linear-gradient(135deg, #ffffff 50%, #c9956c 50%);
+        }
+
+        .theme-preview.eye-care {
+            background: linear-gradient(135deg, #f5f3ed 50%, #8b9d6f 50%);
+        }
+
+        .theme-preview.high-contrast {
+            background: linear-gradient(135deg, #000000 50%, #ffcc66 50%);
+        }
+
+        .theme-preview.dark-blue {
+            background: linear-gradient(135deg, #0a0e1a 50%, #6b9fff 50%);
+        }
+
+        .theme-preview.dark-purple {
+            background: linear-gradient(135deg, #14091a 50%, #b88fff 50%);
+        }
+
+        .theme-preview.dark-cyan {
+            background: linear-gradient(135deg, #091a1a 50%, #6bffdf 50%);
+        }
+
+        .theme-label {
+            flex: 1;
+        }
+
+        .theme-label-name {
+            font-weight: 500;
+            display: block;
+            margin-bottom: 2px;
+        }
+
+        .theme-label-desc {
+            font-size: 12px;
+            color: var(--text-tertiary);
+        }
+
+        /* =================================================================
+           Language Switcher
+           ================================================================= */
+        .language-switcher {
+            position: relative;
+        }
+
+        .language-button {
+            padding: 8px 12px;
+            background: var(--bg-raised);
+            border: 1px solid var(--border-default);
+            border-radius: var(--radius-lg);
+            color: var(--text-secondary);
+            cursor: pointer;
+            font-family: var(--font-base);
+            font-size: 13px;
+            font-weight: 500;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            transition: all 0.15s;
+        }
+
+        .language-button:hover {
+            background: var(--bg-elevated);
+            border-color: var(--border-emphasis);
+            color: var(--text-primary);
+        }
+
+        .language-icon {
+            width: 16px;
+            height: 16px;
+        }
+
+        .language-dropdown {
+            position: absolute;
+            right: 0;
+            top: calc(100% + 8px);
+            background: var(--bg-elevated);
+            border: 1px solid var(--border-default);
+            border-radius: var(--radius-lg);
+            padding: 4px;
+            min-width: 140px;
+            z-index: 100;
+            display: none;
+            box-shadow: var(--shadow-lg);
+        }
+
+        .language-dropdown.show {
+            display: block;
+        }
+
+        .language-option {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 10px 12px;
+            border-radius: var(--radius-md);
+            cursor: pointer;
+            transition: background 0.15s;
+            border: none;
+            background: none;
+            width: 100%;
+            text-align: left;
+            font-family: var(--font-base);
+            font-size: 14px;
+            color: var(--text-primary);
+        }
+
+        .language-option:hover {
+            background: var(--bg-raised);
+        }
+
+        .language-option.active {
+            background: var(--accent-primary-subtle);
+            color: var(--accent-primary);
+        }
+
+        .language-check {
+            width: 16px;
+            height: 16px;
+            color: var(--accent-primary);
+        }
+
+        /* =================================================================
+           Search & Filter Bar
+           ================================================================= */
+        .search-filter-bar {
+            display: flex;
+            gap: 12px;
+            margin-bottom: 24px;
+            align-items: center;
+            flex-wrap: wrap;
+        }
+
+        .search-box {
+            flex: 1;
+            min-width: 200px;
+            position: relative;
+        }
+
+        .search-input {
+            width: 100%;
+            padding: 10px 16px 10px 40px;
+            background: var(--bg-surface);
+            border: 1px solid var(--border-default);
+            border-radius: var(--radius-lg);
+            color: var(--text-primary);
+            font-family: var(--font-base);
+            font-size: 14px;
+            outline: none;
+            transition: all 0.15s;
+        }
+
+        .search-input:focus {
+            border-color: var(--accent-primary);
+            box-shadow: 0 0 0 3px var(--accent-primary-subtle);
+        }
+
+        .search-input::placeholder {
+            color: var(--text-muted);
+        }
+
+        .search-icon {
+            position: absolute;
+            left: 12px;
+            top: 50%;
+            transform: translateY(-50%);
+            width: 18px;
+            height: 18px;
+            color: var(--text-tertiary);
+            pointer-events: none;
+        }
+
+        .filter-group {
+            display: flex;
+            gap: 6px;
+            align-items: center;
+        }
+
+        .filter-label {
+            font-size: 12px;
+            font-weight: 600;
+            color: var(--text-tertiary);
+            text-transform: uppercase;
+            letter-spacing: 0.06em;
+        }
+
+        .filter-chip {
+            padding: 6px 12px;
+            background: var(--bg-surface);
+            border: 1px solid var(--border-default);
+            border-radius: var(--radius-lg);
+            color: var(--text-secondary);
+            font-size: 13px;
+            font-weight: 500;
+            cursor: pointer;
+            transition: all 0.15s;
+            font-family: var(--font-base);
+        }
+
+        .filter-chip:hover {
+            background: var(--bg-raised);
+            border-color: var(--border-emphasis);
+        }
+
+        .filter-chip.active {
+            background: var(--accent-primary);
+            border-color: var(--accent-primary);
+            color: var(--bg-base);
+        }
+
+        .sort-dropdown {
+            position: relative;
+        }
+
+        .sort-button {
+            padding: 8px 14px;
+            background: var(--bg-surface);
+            border: 1px solid var(--border-default);
+            border-radius: var(--radius-lg);
+            color: var(--text-secondary);
+            cursor: pointer;
+            font-family: var(--font-base);
+            font-size: 13px;
+            font-weight: 500;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            transition: all 0.15s;
+        }
+
+        .sort-button:hover {
+            background: var(--bg-raised);
+            border-color: var(--border-emphasis);
+        }
+
+        .sort-icon {
+            width: 14px;
+            height: 14px;
+        }
+
+        .sort-menu {
+            position: absolute;
+            right: 0;
+            top: calc(100% + 4px);
+            background: var(--bg-elevated);
+            border: 1px solid var(--border-default);
+            border-radius: var(--radius-lg);
+            padding: 4px;
+            min-width: 180px;
+            z-index: 100;
+            display: none;
+            box-shadow: var(--shadow-lg);
+        }
+
+        .sort-menu.show {
+            display: block;
+        }
+
+        .sort-option {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 10px 12px;
+            border-radius: var(--radius-md);
+            cursor: pointer;
+            transition: background 0.15s;
+            border: none;
+            background: none;
+            width: 100%;
+            text-align: left;
+            font-family: var(--font-base);
+            font-size: 14px;
+            color: var(--text-primary);
+        }
+
+        .sort-option:hover {
+            background: var(--bg-raised);
+        }
+
+        .sort-option.active {
+            color: var(--accent-primary);
+        }
+
+        .sort-check {
+            width: 16px;
+            height: 16px;
+            color: var(--accent-primary);
+        }
+
+        .results-count {
+            font-size: 13px;
+            color: var(--text-tertiary);
+            padding: 0 4px;
+        }
+
+        /* =================================================================
+           Responsive Design
+           ================================================================= */
+        @media (max-width: 768px) {
+            .container {
+                padding: 24px 16px;
+            }
+
+            header {
+                flex-direction: column;
+                gap: 16px;
+                align-items: stretch;
+            }
+
+            header > div:last-child {
+                flex-direction: column;
+                gap: 12px;
+            }
+
+            .title {
+                font-size: 32px;
+            }
+
+            .server-stack {
+                right: -48px;
+                width: 32px;
+                height: 28px;
+            }
+
+            .search-filter-bar {
+                flex-direction: column;
+                align-items: stretch;
+            }
+
+            .search-box {
+                min-width: 100%;
+            }
+
+            .filter-group {
+                flex-wrap: wrap;
+            }
+
+            .project-card {
+                flex-direction: column;
+                align-items: stretch;
+                gap: 12px;
+            }
+
+            .project-info {
+                cursor: default;
+            }
+
+            .project-actions {
+                flex-wrap: wrap;
+                justify-content: flex-start;
+            }
+
+            .log-content {
+                height: 150px;
+                font-size: 11px;
+            }
+
+            .modal {
+                width: 95%;
+                padding: 24px;
+            }
+
+            .modal h2 {
+                font-size: 20px;
+            }
+
+            .theme-dropdown {
+                right: auto;
+                left: 0;
+            }
+        }
+
+        @media (max-width: 480px) {
+            .title {
+                font-size: 28px;
+            }
+
+            .tagline {
+                font-size: 13px;
+            }
+
+            .btn {
+                font-size: 13px;
+                padding: 8px 16px;
+            }
+
+            .btn-sm {
+                font-size: 12px;
+                padding: 6px 10px;
+            }
+
+            .project-name {
+                font-size: 14px;
+            }
+
+            .project-meta {
+                font-size: 12px;
+            }
+
+            .filter-chip {
+                font-size: 12px;
+                padding: 5px 10px;
+            }
+
+            .results-count {
+                font-size: 12px;
+            }
+        }
+
+        /* Touch device optimizations */
+        @media (hover: none) and (pointer: coarse) {
+            .btn,
+            .filter-chip,
+            .theme-button,
+            .sort-button {
+                min-height: 44px;
+            }
+
+            .btn-icon {
+                min-width: 44px;
+                min-height: 44px;
+            }
+
+            .project-card {
+                padding: 16px 20px;
+            }
+        }
+
+        /* =================================================================
+           Keyboard Shortcuts Help
+           ================================================================= */
+        .shortcuts-help {
+            position: fixed;
+            bottom: 24px;
+            right: 24px;
+            z-index: 150;
+        }
+
+        .shortcuts-button {
+            width: 48px;
+            height: 48px;
+            border-radius: 50%;
+            background: var(--accent-primary);
+            color: var(--bg-base);
+            border: none;
+            cursor: pointer;
+            box-shadow: var(--shadow-lg), var(--shadow-glow-primary);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: 600;
+            font-size: 18px;
+            transition: all 0.2s;
+        }
+
+        .shortcuts-button:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 16px 32px rgba(0,0,0,0.5), var(--shadow-glow-primary);
+        }
+
+        .shortcuts-panel {
+            position: fixed;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            background: var(--bg-elevated);
+            border: 1px solid var(--border-default);
+            border-radius: var(--radius-xl);
+            padding: 32px;
+            width: 90%;
+            max-width: 500px;
+            z-index: 200;
+            box-shadow: var(--shadow-lg);
+            display: none;
+        }
+
+        .shortcuts-panel.show {
+            display: block;
+        }
+
+        .shortcuts-panel h2 {
+            font-family: var(--font-display);
+            font-size: 24px;
+            font-weight: 400;
+            margin-bottom: 24px;
+            color: var(--text-primary);
+        }
+
+        .shortcuts-list {
+            display: flex;
+            flex-direction: column;
+            gap: 16px;
+        }
+
+        .shortcut-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 12px 0;
+            border-bottom: 1px solid var(--border-subtle);
+        }
+
+        .shortcut-item:last-child {
+            border-bottom: none;
+        }
+
+        .shortcut-desc {
+            color: var(--text-primary);
+            font-size: 14px;
+        }
+
+        .shortcut-keys {
+            display: flex;
+            gap: 6px;
+        }
+
+        .key {
+            padding: 4px 10px;
+            background: var(--bg-base);
+            border: 1px solid var(--border-default);
+            border-radius: var(--radius-sm);
+            font-family: var(--font-mono);
+            font-size: 12px;
+            color: var(--text-secondary);
+            box-shadow: 0 2px 0 var(--border-subtle);
+        }
+
+        .shortcuts-close {
+            margin-top: 24px;
+            width: 100%;
+        }
+
+        /* =================================================================
+           Batch Operations
+           ================================================================= */
+        .batch-actions-bar {
+            position: fixed;
+            bottom: 0;
+            left: 0;
+            right: 0;
+            background: var(--bg-elevated);
+            border-top: 1px solid var(--border-default);
+            padding: 16px 24px;
+            display: none;
+            align-items: center;
+            justify-content: space-between;
+            box-shadow: 0 -4px 12px rgba(0,0,0,0.3);
+            z-index: 100;
+        }
+
+        .batch-actions-bar.show {
+            display: flex;
+        }
+
+        .batch-info {
+            display: flex;
+            align-items: center;
+            gap: 16px;
+        }
+
+        .batch-count {
+            font-size: 14px;
+            font-weight: 600;
+            color: var(--text-primary);
+        }
+
+        .batch-actions {
+            display: flex;
+            gap: 8px;
+        }
+
+        .project-checkbox {
+            width: 20px;
+            height: 20px;
+            cursor: pointer;
+            accent-color: var(--accent-primary);
+        }
+
+        .select-all-container {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            padding: 12px 0;
+            margin-bottom: 8px;
+            border-bottom: 1px solid var(--border-subtle);
+        }
+
+        .select-all-label {
+            font-size: 13px;
+            color: var(--text-secondary);
+            cursor: pointer;
+            user-select: none;
+        }
+
+        /* =================================================================
+           Toast Notifications
+           ================================================================= */
+        .toast-container {
+            position: fixed;
+            top: 24px;
+            right: 24px;
+            z-index: 300;
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+            max-width: 400px;
+        }
+
+        .toast {
+            background: var(--bg-elevated);
+            border: 1px solid var(--border-default);
+            border-radius: var(--radius-lg);
+            padding: 16px 20px;
+            box-shadow: var(--shadow-lg);
+            display: flex;
+            align-items: flex-start;
+            gap: 12px;
+            animation: slideIn 0.3s ease;
+            min-width: 300px;
+        }
+
+        @keyframes slideIn {
+            from {
+                transform: translateX(400px);
+                opacity: 0;
+            }
+            to {
+                transform: translateX(0);
+                opacity: 1;
+            }
+        }
+
+        .toast.removing {
+            animation: slideOut 0.3s ease forwards;
+        }
+
+        @keyframes slideOut {
+            from {
+                transform: translateX(0);
+                opacity: 1;
+            }
+            to {
+                transform: translateX(400px);
+                opacity: 0;
+            }
+        }
+
+        .toast-icon {
+            width: 20px;
+            height: 20px;
+            flex-shrink: 0;
+            margin-top: 2px;
+        }
+
+        .toast.success .toast-icon {
+            color: var(--semantic-success);
+        }
+
+        .toast.error .toast-icon {
+            color: var(--semantic-error);
+        }
+
+        .toast.warning .toast-icon {
+            color: var(--semantic-warning);
+        }
+
+        .toast.info .toast-icon {
+            color: var(--accent-primary);
+        }
+
+        .toast-content {
+            flex: 1;
+        }
+
+        .toast-title {
+            font-weight: 600;
+            font-size: 14px;
+            color: var(--text-primary);
+            margin-bottom: 4px;
+        }
+
+        .toast-message {
+            font-size: 13px;
+            color: var(--text-secondary);
+            line-height: 1.5;
+        }
+
+        .toast-close {
+            background: none;
+            border: none;
+            color: var(--text-tertiary);
+            cursor: pointer;
+            padding: 0;
+            width: 20px;
+            height: 20px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            border-radius: var(--radius-sm);
+            transition: all 0.15s;
+        }
+
+        .toast-close:hover {
+            background: var(--bg-raised);
+            color: var(--text-primary);
+        }
+
+        /* =================================================================
+           Import/Export
+           ================================================================= */
+        .import-modal {
+            max-height: 60vh;
+            overflow-y: auto;
+        }
+
+        .import-preview {
+            background: var(--bg-base);
+            border: 1px solid var(--border-subtle);
+            border-radius: var(--radius-lg);
+            padding: 16px;
+            margin: 16px 0;
+            max-height: 300px;
+            overflow-y: auto;
+        }
+
+        .import-item {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            padding: 12px;
+            background: var(--bg-surface);
+            border: 1px solid var(--border-subtle);
+            border-radius: var(--radius-md);
+            margin-bottom: 8px;
+        }
+
+        .import-item-checkbox {
+            width: 18px;
+            height: 18px;
+            cursor: pointer;
+            accent-color: var(--accent-primary);
+        }
+
+        .import-item-info {
+            flex: 1;
+        }
+
+        .import-item-name {
+            font-weight: 600;
+            font-size: 14px;
+            color: var(--text-primary);
+            margin-bottom: 4px;
+        }
+
+        .import-item-meta {
+            font-size: 12px;
+            color: var(--text-tertiary);
+        }
+
+        .import-item-conflict {
+            padding: 4px 8px;
+            background: var(--semantic-warning);
+            color: var(--bg-base);
+            border-radius: var(--radius-sm);
+            font-size: 11px;
+            font-weight: 600;
+        }
+
+        .import-stats {
+            display: flex;
+            gap: 16px;
+            padding: 12px;
+            background: var(--bg-surface);
+            border-radius: var(--radius-md);
+            margin-bottom: 16px;
+        }
+
+        .import-stat {
+            flex: 1;
+            text-align: center;
+        }
+
+        .import-stat-value {
+            font-size: 24px;
+            font-weight: 600;
+            color: var(--accent-primary);
+        }
+
+        .import-stat-label {
+            font-size: 12px;
+            color: var(--text-tertiary);
+            margin-top: 4px;
+        }
+
+        .status-indicator.stopped {
+            background: var(--text-muted);
+        }
+
+        .project-info {
+            flex: 1;
+            min-width: 0;
+            cursor: pointer;
+        }
+
+        .project-name {
+            font-weight: 600;
+            font-size: 15px;
+            margin-bottom: 4px;
+            color: var(--text-primary);
+        }
+
+        .project-meta {
+            font-size: 13px;
+            color: var(--text-tertiary);
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+
+        .project-actions {
+            display: flex;
+            gap: 8px;
+            align-items: center;
+        }
+
+        /* Dropdown menu */
+        .dropdown {
+            position: relative;
+        }
+
+        .dropdown-menu {
+            position: absolute;
+            right: 0;
+            top: 100%;
+            margin-top: 4px;
+            background: var(--bg-elevated);
+            border: 1px solid var(--border-default);
+            border-radius: var(--radius-lg);
+            padding: 4px;
+            min-width: 120px;
+            z-index: 100;
+            display: none;
+            box-shadow: var(--shadow-lg);
+        }
+
+        .dropdown-menu.show {
+            display: block;
+        }
+
+        .dropdown-item {
+            display: block;
+            width: 100%;
+            padding: 10px 12px;
+            text-align: left;
+            background: none;
+            border: none;
+            color: var(--text-primary);
+            font-family: var(--font-base);
+            font-size: 14px;
+            cursor: pointer;
+            border-radius: var(--radius-md);
+            transition: background 0.15s;
+        }
+
+        .dropdown-item:hover {
+            background: var(--bg-raised);
+        }
+
+        .dropdown-item.danger {
+            color: var(--semantic-error);
+        }
+
+        /* =================================================================
+           Empty State
+           ================================================================= */
+        .empty-state {
+            text-align: center;
+            padding: 48px 24px;
+            color: var(--text-secondary);
+            background: var(--bg-surface);
+            border-radius: var(--radius-xl);
+            border: 1px solid var(--border-subtle);
+        }
+
+        .empty-state p {
+            margin-bottom: 20px;
+            font-size: 15px;
+        }
+
+        /* =================================================================
+           Log Panel
+           ================================================================= */
+        .log-panel {
+            background: var(--bg-surface);
+            border-radius: var(--radius-xl);
+            border: 1px solid var(--border-subtle);
+            overflow: hidden;
+            box-shadow: var(--shadow-md);
+            position: relative;
+        }
+
+        .log-panel::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            height: 1px;
+            background: linear-gradient(90deg, transparent, rgba(255,255,255,0.04), transparent);
+            border-radius: var(--radius-xl) var(--radius-xl) 0 0;
+        }
+
+        .log-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 16px 20px;
+            border-bottom: 1px solid var(--border-subtle);
+        }
+
+        .log-header h2 {
+            font-size: 12px;
+            font-weight: 600;
+            letter-spacing: 0.06em;
+            text-transform: uppercase;
+            color: var(--accent-primary);
+        }
+
+        .log-content {
+            height: 200px;
+            overflow-y: auto;
+            padding: 16px 20px;
+            font-family: var(--font-mono);
+            font-size: 12px;
+            line-height: 1.7;
+            color: var(--text-secondary);
+            background: var(--bg-base);
+        }
+
+        .log-content:empty::before {
+            content: 'No logs yet. Select a running project to view logs.';
+            color: var(--text-muted);
+        }
+
+        .log-line {
+            white-space: pre-wrap;
+            word-break: break-all;
+        }
+
+        /* =================================================================
+           Modal
+           ================================================================= */
+        .modal-backdrop {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(0, 0, 0, 0.75);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            z-index: 200;
+            opacity: 0;
+            visibility: hidden;
+            transition: opacity 0.15s, visibility 0.15s;
+        }
+
+        .modal-backdrop.show {
+            opacity: 1;
+            visibility: visible;
+        }
+
+        .modal {
+            background: var(--bg-elevated);
+            border-radius: var(--radius-xl);
+            border: 1px solid var(--border-default);
+            padding: 32px;
+            width: 90%;
+            max-width: 480px;
+            transform: translateY(-20px);
+            transition: transform 0.15s;
+            box-shadow: var(--shadow-lg);
+        }
+
+        .modal-backdrop.show .modal {
+            transform: translateY(0);
+        }
+
+        .modal h2 {
+            font-family: var(--font-display);
+            font-size: 24px;
+            font-weight: 400;
+            margin-bottom: 24px;
+            color: var(--text-primary);
+        }
+
+        .form-group {
+            margin-bottom: 20px;
+        }
+
+        .form-group label {
+            display: block;
+            font-size: 12px;
+            font-weight: 600;
+            letter-spacing: 0.06em;
+            text-transform: uppercase;
+            margin-bottom: 8px;
+            color: var(--text-tertiary);
+        }
+
+        .form-group input {
+            width: 100%;
+            padding: 14px 16px;
+            background: var(--bg-base);
+            border: 1px solid var(--border-subtle);
+            border-radius: var(--radius-lg);
+            color: var(--text-primary);
+            font-family: var(--font-base);
+            font-size: 14px;
+            outline: none;
+            transition: all 0.15s;
+            box-shadow: inset 0 2px 4px rgba(0,0,0,0.2);
+        }
+
+        .form-group input:focus {
+            border-color: var(--accent-primary);
+            box-shadow: inset 0 2px 4px rgba(0,0,0,0.2), 0 0 0 3px var(--accent-primary-subtle);
+        }
+
+        .form-group input::placeholder {
+            color: var(--text-muted);
+        }
+
+        .form-group small {
+            display: block;
+            margin-top: 6px;
+            font-size: 12px;
+            color: var(--text-muted);
+        }
+
+        .modal-actions {
+            display: flex;
+            justify-content: flex-end;
+            gap: 12px;
+            margin-top: 28px;
+            padding-top: 20px;
+            border-top: 1px solid var(--border-subtle);
+        }
+
+        /* =================================================================
+           Utilities
+           ================================================================= */
+        .sr-only {
+            position: absolute;
+            width: 1px;
+            height: 1px;
+            padding: 0;
+            margin: -1px;
+            overflow: hidden;
+            clip: rect(0, 0, 0, 0);
+            border: 0;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <header>
+            <div class="brand">
+                <h1 class="title">
+                    Server Manager
+                    <!-- Hand-drawn: Stacked servers with signal pulse -->
+                    <svg class="server-stack" viewBox="0 0 40 36" fill="none">
+                        <!-- Three server bars - slightly varied for hand-drawn feel -->
+                        <rect x="2" y="4" width="24" height="6" rx="2"/>
+                        <rect x="2" y="14" width="24" height="6" rx="2"/>
+                        <rect x="2" y="24" width="24" height="6" rx="2"/>
+                        <!-- Signal waves emanating -->
+                        <path class="signal" d="M30 15 Q33 12, 30 9"/>
+                        <path class="signal" d="M34 18 Q38 13, 34 6"/>
+                    </svg>
+                </h1>
+                <p class="tagline">Local development server dashboard</p>
+            </div>
+            <div style="display: flex; gap: 12px; align-items: center;">
+                <div class="language-switcher">
+                    <button class="language-button" onclick="toggleLangDropdown(event)">
+                        <svg class="language-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <circle cx="12" cy="12" r="10"/>
+                            <line x1="2" y1="12" x2="22" y2="12"/>
+                            <path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"/>
+                        </svg>
+                        <span id="current-language">中文</span>
+                    </button>
+                    <div id="lang-dropdown" class="language-dropdown">
+                        <button class="language-option active" data-lang="zh-CN" onclick="changeLanguage('zh-CN')">
+                            <span>中文</span>
+                            <svg class="language-check" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                <polyline points="20 6 9 17 4 12"/>
+                            </svg>
+                        </button>
+                        <button class="language-option" data-lang="en-US" onclick="changeLanguage('en-US')">
+                            <span>English</span>
+                            <svg class="language-check" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="opacity: 0;">
+                                <polyline points="20 6 9 17 4 12"/>
+                            </svg>
+                        </button>
+                    </div>
+                </div>
+                <div class="theme-switcher">
+                    <button class="theme-button" onclick="toggleThemeDropdown(event)">
+                        <svg class="theme-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <circle cx="12" cy="12" r="5"/>
+                            <line x1="12" y1="1" x2="12" y2="3"/>
+                            <line x1="12" y1="21" x2="12" y2="23"/>
+                            <line x1="4.22" y1="4.22" x2="5.64" y2="5.64"/>
+                            <line x1="18.36" y1="18.36" x2="19.78" y2="19.78"/>
+                            <line x1="1" y1="12" x2="3" y2="12"/>
+                            <line x1="21" y1="12" x2="23" y2="12"/>
+                            <line x1="4.22" y1="19.78" x2="5.64" y2="18.36"/>
+                            <line x1="18.36" y1="5.64" x2="19.78" y2="4.22"/>
+                        </svg>
+                        <span id="current-theme-name">Dark Camel</span>
+                    </button>
+                    <div id="theme-dropdown" class="theme-dropdown">
+                        <button class="theme-option" data-theme="light" onclick="changeTheme('light')">
+                            <div class="theme-preview light"></div>
+                            <div class="theme-label">
+                                <span class="theme-label-name">Light</span>
+                                <span class="theme-label-desc">明亮浅色主题</span>
+                            </div>
+                        </button>
+                        <button class="theme-option" data-theme="dark-camel" onclick="changeTheme('dark-camel')">
+                            <div class="theme-preview dark-camel"></div>
+                            <div class="theme-label">
+                                <span class="theme-label-name">Dark Camel</span>
+                                <span class="theme-label-desc">默认深色主题</span>
+                            </div>
+                        </button>
+                        <button class="theme-option" data-theme="eye-care" onclick="changeTheme('eye-care')">
+                            <div class="theme-preview eye-care"></div>
+                            <div class="theme-label">
+                                <span class="theme-label-name">Eye Care</span>
+                                <span class="theme-label-desc">护眼柔和配色</span>
+                            </div>
+                        </button>
+                        <button class="theme-option" data-theme="high-contrast" onclick="changeTheme('high-contrast')">
+                            <div class="theme-preview high-contrast"></div>
+                            <div class="theme-label">
+                                <span class="theme-label-name">High Contrast</span>
+                                <span class="theme-label-desc">高对比度</span>
+                            </div>
+                        </button>
+                        <button class="theme-option" data-theme="dark-blue" onclick="changeTheme('dark-blue')">
+                            <div class="theme-preview dark-blue"></div>
+                            <div class="theme-label">
+                                <span class="theme-label-name">Dark Blue</span>
+                                <span class="theme-label-desc">深蓝色主题</span>
+                            </div>
+                        </button>
+                        <button class="theme-option" data-theme="dark-purple" onclick="changeTheme('dark-purple')">
+                            <div class="theme-preview dark-purple"></div>
+                            <div class="theme-label">
+                                <span class="theme-label-name">Dark Purple</span>
+                                <span class="theme-label-desc">深紫色主题</span>
+                            </div>
+                        </button>
+                        <button class="theme-option" data-theme="dark-cyan" onclick="changeTheme('dark-cyan')">
+                            <div class="theme-preview dark-cyan"></div>
+                            <div class="theme-label">
+                                <span class="theme-label-name">Dark Cyan</span>
+                                <span class="theme-label-desc">深青色主题</span>
+                            </div>
+                        </button>
+                    </div>
+                </div>
+                <button class="btn btn-secondary" onclick="exportProjects()" title="导出项目配置">
+                    <svg style="width: 14px; height: 14px; margin-right: 4px;" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
+                        <polyline points="7 10 12 15 17 10"/>
+                        <line x1="12" y1="15" x2="12" y2="3"/>
+                    </svg>
+                    导出
+                </button>
+                <button class="btn btn-secondary" onclick="document.getElementById('import-file').click()" title="导入项目配置">
+                    <svg style="width: 14px; height: 14px; margin-right: 4px;" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
+                        <polyline points="17 8 12 3 7 8"/>
+                        <line x1="12" y1="3" x2="12" y2="15"/>
+                    </svg>
+                    导入
+                </button>
+                <input type="file" id="import-file" accept=".json" style="display: none;" onchange="importProjects(event)">
+                <button class="btn btn-primary" onclick="openAddModal()">+ Add Project</button>
+            </div>
+        </header>
+
+        <!-- Select All -->
+        <div class="select-all-container" id="select-all-container" style="display: none;">
+            <input type="checkbox" id="select-all-checkbox" class="project-checkbox" onchange="toggleSelectAll()">
+            <label for="select-all-checkbox" class="select-all-label">全选 / 取消全选</label>
+        </div>
+
+        <!-- Search & Filter Bar -->
+        <div class="search-filter-bar">
+            <div class="search-box">
+                <svg class="search-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <circle cx="11" cy="11" r="8"/>
+                    <path d="m21 21-4.35-4.35"/>
+                </svg>
+                <input
+                    type="text"
+                    class="search-input"
+                    id="search-input"
+                    placeholder="搜索项目名称、目录或端口..."
+                    oninput="handleSearch()"
+                >
+            </div>
+
+            <div class="filter-group">
+                <span class="filter-label">状态</span>
+                <button class="filter-chip active" data-filter="all" onclick="setStatusFilter('all')">全部</button>
+                <button class="filter-chip" data-filter="running" onclick="setStatusFilter('running')">运行中</button>
+                <button class="filter-chip" data-filter="stopped" onclick="setStatusFilter('stopped')">已停止</button>
+                <button class="filter-chip" data-filter="external" onclick="setStatusFilter('external')">外部占用</button>
+            </div>
+
+            <button class="btn btn-sm btn-secondary" onclick="toggleBatchMode()" id="batch-mode-btn">
+                <svg style="width: 14px; height: 14px; margin-right: 4px;" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <path d="M9 11l3 3L22 4"/>
+                    <path d="M21 12v7a2 2 0 01-2 2H5a2 2 0 01-2-2V5a2 2 0 012-2h11"/>
+                </svg>
+                <span id="batch-mode-text">批量操作</span>
+            </button>
+
+            <div class="sort-dropdown">
+                <button class="sort-button" onclick="toggleSortMenu(event)">
+                    <svg class="sort-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <path d="M3 6h18M7 12h10M11 18h2"/>
+                    </svg>
+                    <span>排序</span>
+                </button>
+                <div id="sort-menu" class="sort-menu">
+                    <button class="sort-option active" data-sort="name-asc" onclick="setSortOrder('name-asc')">
+                        <span>名称 (A-Z)</span>
+                        <svg class="sort-check" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <polyline points="20 6 9 17 4 12"/>
+                        </svg>
+                    </button>
+                    <button class="sort-option" data-sort="name-desc" onclick="setSortOrder('name-desc')">
+                        <span>名称 (Z-A)</span>
+                        <svg class="sort-check" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="opacity: 0;">
+                            <polyline points="20 6 9 17 4 12"/>
+                        </svg>
+                    </button>
+                    <button class="sort-option" data-sort="port-asc" onclick="setSortOrder('port-asc')">
+                        <span>端口 (升序)</span>
+                        <svg class="sort-check" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="opacity: 0;">
+                            <polyline points="20 6 9 17 4 12"/>
+                        </svg>
+                    </button>
+                    <button class="sort-option" data-sort="port-desc" onclick="setSortOrder('port-desc')">
+                        <span>端口 (降序)</span>
+                        <svg class="sort-check" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="opacity: 0;">
+                            <polyline points="20 6 9 17 4 12"/>
+                        </svg>
+                    </button>
+                    <button class="sort-option" data-sort="status" onclick="setSortOrder('status')">
+                        <span>状态 (运行优先)</span>
+                        <svg class="sort-check" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="opacity: 0;">
+                            <polyline points="20 6 9 17 4 12"/>
+                        </svg>
+                    </button>
+                </div>
+            </div>
+
+            <span class="results-count" id="results-count"></span>
+        </div>
+
+        <div id="projects-list" class="projects-list">
+            <!-- Projects will be rendered here -->
+        </div>
+
+        <div class="log-panel">
+            <div class="log-header">
+                <h2 id="log-title">/ Logs</h2>
+                <button class="btn btn-sm btn-secondary" onclick="clearLogs()">Clear</button>
+            </div>
+            <div id="log-content" class="log-content"></div>
+        </div>
+    </div>
+
+    <!-- Toast Container -->
+    <div id="toast-container" class="toast-container"></div>
+
+    <!-- Batch Actions Bar -->
+    <div id="batch-actions-bar" class="batch-actions-bar">
+        <div class="batch-info">
+            <span class="batch-count" id="batch-count">已选择 0 个项目</span>
+            <button class="btn btn-sm btn-secondary" onclick="clearSelection()">取消选择</button>
+        </div>
+        <div class="batch-actions">
+            <button class="btn btn-sm btn-primary" onclick="batchStartProjects()">批量启动</button>
+            <button class="btn btn-sm btn-secondary" onclick="batchStopProjects()">批量停止</button>
+            <button class="btn btn-sm btn-danger" onclick="batchDeleteProjects()">批量删除</button>
+        </div>
+    </div>
+
+    <!-- Keyboard Shortcuts Help -->
+    <div class="shortcuts-help">
+        <button class="shortcuts-button" onclick="toggleShortcutsPanel()" title="键盘快捷键 (?)">
+            ?
+        </button>
+    </div>
+
+    <div id="shortcuts-panel" class="shortcuts-panel">
+        <h2>键盘快捷键</h2>
+        <div class="shortcuts-list">
+            <div class="shortcut-item">
+                <span class="shortcut-desc">聚焦搜索框</span>
+                <div class="shortcut-keys">
+                    <span class="key">Ctrl</span>
+                    <span class="key">K</span>
+                </div>
+            </div>
+            <div class="shortcut-item">
+                <span class="shortcut-desc">添加新项目</span>
+                <div class="shortcut-keys">
+                    <span class="key">Ctrl</span>
+                    <span class="key">N</span>
+                </div>
+            </div>
+            <div class="shortcut-item">
+                <span class="shortcut-desc">关闭弹窗/菜单</span>
+                <div class="shortcut-keys">
+                    <span class="key">Esc</span>
+                </div>
+            </div>
+            <div class="shortcut-item">
+                <span class="shortcut-desc">显示快捷键帮助</span>
+                <div class="shortcut-keys">
+                    <span class="key">?</span>
+                </div>
+            </div>
+            <div class="shortcut-item">
+                <span class="shortcut-desc">切换主题</span>
+                <div class="shortcut-keys">
+                    <span class="key">Ctrl</span>
+                    <span class="key">T</span>
+                </div>
+            </div>
+            <div class="shortcut-item">
+                <span class="shortcut-desc">批量操作模式</span>
+                <div class="shortcut-keys">
+                    <span class="key">Ctrl</span>
+                    <span class="key">B</span>
+                </div>
+            </div>
+        </div>
+        <button class="btn btn-primary shortcuts-close" onclick="toggleShortcutsPanel()">关闭</button>
+    </div>
+
+    <!-- Import Modal -->
+    <div id="import-modal-backdrop" class="modal-backdrop" onclick="closeImportModal()">
+        <div class="modal import-modal" onclick="event.stopPropagation()">
+            <h2>导入项目配置</h2>
+
+            <div class="import-stats" id="import-stats" style="display: none;">
+                <div class="import-stat">
+                    <div class="import-stat-value" id="import-total">0</div>
+                    <div class="import-stat-label">总计</div>
+                </div>
+                <div class="import-stat">
+                    <div class="import-stat-value" id="import-new">0</div>
+                    <div class="import-stat-label">新项目</div>
+                </div>
+                <div class="import-stat">
+                    <div class="import-stat-value" id="import-conflicts">0</div>
+                    <div class="import-stat-label">端口冲突</div>
+                </div>
+            </div>
+
+            <div class="import-preview" id="import-preview">
+                <p style="color: var(--text-muted); text-align: center;">选择 JSON 文件以预览...</p>
+            </div>
+
+            <div class="modal-actions">
+                <button type="button" class="btn btn-secondary" onclick="closeImportModal()">取消</button>
+                <button type="button" class="btn btn-primary" id="import-confirm-btn" onclick="confirmImport()" disabled>导入选中项目</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Add/Edit Modal -->
+    <div id="modal-backdrop" class="modal-backdrop" onclick="closeModalOnBackdrop(event)">
+        <div class="modal" onclick="event.stopPropagation()">
+            <h2 id="modal-title">Add Project</h2>
+            <form id="project-form" onsubmit="saveProject(event)">
+                <input type="hidden" id="edit-project-id">
+
+                <div class="form-group">
+                    <label for="project-name">Name</label>
+                    <input type="text" id="project-name" placeholder="My Project" required>
+                </div>
+
+                <div class="form-group">
+                    <label for="project-directory">Directory</label>
+                    <input type="text" id="project-directory" placeholder="C:\dev\my-project" required>
+                    <small>Full path to the project folder</small>
+                </div>
+
+                <div class="form-group">
+                    <label for="project-command">Start Command</label>
+                    <input type="text" id="project-command" placeholder="npm run dev" required>
+                    <small>Command to start the dev server</small>
+                </div>
+
+                <div class="form-group">
+                    <label for="project-port">Port</label>
+                    <input type="number" id="project-port" placeholder="3000" min="1" max="65535" required>
+                    <small>Port the server will listen on</small>
+                </div>
+
+                <div class="form-group">
+                    <label for="project-url">URL <span style="font-weight: 400; text-transform: none; letter-spacing: 0; color: var(--text-muted);">(optional)</span></label>
+                    <input type="text" id="project-url" placeholder="http://localhost:3000">
+                    <small>URL to open in browser when running</small>
+                </div>
+
+                <div class="modal-actions">
+                    <button type="button" class="btn btn-secondary" onclick="closeModal()">Cancel</button>
+                    <button type="submit" class="btn btn-primary">Save</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <script>
+        // =================================================================
+        // State
+        // =================================================================
+        let projects = [];
+        let selectedProjectId = null;
+        let openDropdownId = null;
+        let pollInterval = null;
+        let logPollInterval = null;
+        let searchQuery = '';
+        let statusFilter = 'all';
+        let sortOrder = 'name-asc';
+        let sortMenuOpen = false;
+        let selectedProjects = new Set();
+        let batchMode = false;
+        let currentLanguage = 'zh-CN';
+
+        // =================================================================
+        // Internationalization (i18n)
+        // =================================================================
+        const translations = {
+            'zh-CN': {
+                // Header
+                'app.title': 'Server Manager',
+                'app.tagline': '本地开发服务器管理面板',
+                'btn.addProject': '+ 添加项目',
+                'btn.export': '导出',
+                'btn.import': '导入',
+
+                // Search & Filter
+                'search.placeholder': '搜索项目名称、目录或端口...',
+                'filter.status': '状态',
+                'filter.all': '全部',
+                'filter.running': '运行中',
+                'filter.stopped': '已停止',
+                'filter.external': '外部占用',
+                'btn.batchMode': '批量操作',
+                'btn.exitBatch': '退出批量',
+                'btn.sort': '排序',
+
+                // Sort options
+                'sort.nameAsc': '名称 (A-Z)',
+                'sort.nameDesc': '名称 (Z-A)',
+                'sort.portAsc': '端口 (升序)',
+                'sort.portDesc': '端口 (降序)',
+                'sort.status': '状态 (运行优先)',
+
+                // Results
+                'results.showing': '显示',
+                'results.of': '/',
+                'results.projects': '个项目',
+                'results.total': '共',
+
+                // Select All
+                'selectAll.label': '全选 / 取消全选',
+
+                // Project Card
+                'project.open': 'Open',
+                'project.start': 'Start',
+                'project.stop': 'Stop',
+                'project.restart': 'Restart',
+                'project.forceKill': 'Force Kill',
+                'project.edit': 'Edit',
+                'project.delete': 'Delete',
+                'project.externalPort': 'Port in use externally',
+
+                // Empty State
+                'empty.noProjects': '还没有配置项目',
+                'empty.addFirst': '添加你的第一个项目',
+                'empty.noResults': '没有找到匹配的项目',
+                'empty.clearFilters': '清除筛选条件',
+
+                // Logs
+                'logs.title': '/ 日志',
+                'logs.titleProject': '/ 日志: ',
+                'logs.clear': 'Clear',
+                'logs.empty': '暂无日志。选择一个运行中的项目查看日志。',
+
+                // Batch Actions
+                'batch.selected': '已选择',
+                'batch.cancel': '取消选择',
+                'batch.start': '批量启动',
+                'batch.stop': '批量停止',
+                'batch.delete': '批量删除',
+                'batch.confirmStart': '确定要启动 {count} 个项目吗？',
+                'batch.confirmStop': '确定要停止 {count} 个项目吗？',
+                'batch.confirmDelete': '确定要删除 {count} 个项目吗？此操作不可撤销！',
+
+                // Modal - Add/Edit Project
+                'modal.addTitle': '添加项目',
+                'modal.editTitle': '编辑项目',
+                'modal.name': '名称',
+                'modal.namePlaceholder': '我的项目',
+                'modal.directory': '目录',
+                'modal.directoryPlaceholder': 'C:\\dev\\my-project',
+                'modal.directoryHint': '项目文件夹的完整路径',
+                'modal.command': '启动命令',
+                'modal.commandPlaceholder': 'npm run dev',
+                'modal.commandHint': '启动开发服务器的命令',
+                'modal.port': '端口',
+                'modal.portPlaceholder': '3000',
+                'modal.portHint': '服务器监听的端口',
+                'modal.url': 'URL',
+                'modal.urlOptional': '(可选)',
+                'modal.urlPlaceholder': 'http://localhost:3000',
+                'modal.urlHint': '运行时在浏览器中打开的 URL',
+                'modal.cancel': '取消',
+                'modal.save': '保存',
+
+                // Modal - Import
+                'import.title': '导入项目配置',
+                'import.total': '总计',
+                'import.new': '新项目',
+                'import.conflicts': '端口冲突',
+                'import.conflict': '端口冲突',
+                'import.preview': '选择 JSON 文件以预览...',
+                'import.cancel': '取消',
+                'import.confirm': '导入选中项目',
+                'import.confirmCount': '导入选中项目 ({count})',
+
+                // Shortcuts
+                'shortcuts.title': '键盘快捷键',
+                'shortcuts.search': '聚焦搜索框',
+                'shortcuts.addProject': '添加新项目',
+                'shortcuts.closeModal': '关闭弹窗/菜单',
+                'shortcuts.help': '显示快捷键帮助',
+                'shortcuts.theme': '切换主题',
+                'shortcuts.batch': '批量操作模式',
+                'shortcuts.close': '关闭',
+
+                // Theme names
+                'theme.darkCamel': 'Dark Camel',
+                'theme.darkCamelDesc': '默认深色主题',
+                'theme.light': 'Light',
+                'theme.lightDesc': '明亮浅色主题',
+                'theme.eyeCare': 'Eye Care',
+                'theme.eyeCareDesc': '护眼柔和配色',
+                'theme.highContrast': 'High Contrast',
+                'theme.highContrastDesc': '高对比度',
+                'theme.darkBlue': 'Dark Blue',
+                'theme.darkBlueDesc': '深蓝色主题',
+                'theme.darkPurple': 'Dark Purple',
+                'theme.darkPurpleDesc': '深紫色主题',
+                'theme.darkCyan': 'Dark Cyan',
+                'theme.darkCyanDesc': '深青色主题',
+
+                // Toast messages
+                'toast.startSuccess': '启动成功',
+                'toast.startSuccessMsg': '项目已成功启动',
+                'toast.startFailed': '启动失败',
+                'toast.stopSuccess': '停止成功',
+                'toast.stopSuccessMsg': '项目已成功停止',
+                'toast.stopFailed': '停止失败',
+                'toast.restartSuccess': '重启成功',
+                'toast.restartSuccessMsg': '项目已成功重启',
+                'toast.restartFailed': '重启失败',
+                'toast.deleteSuccess': '删除成功',
+                'toast.deleteSuccessMsg': '项目已成功删除',
+                'toast.deleteFailed': '删除失败',
+                'toast.killSuccess': '强制终止成功',
+                'toast.killSuccessMsg': '已终止 {count} 个进程',
+                'toast.killFailed': '强制终止失败',
+                'toast.portNotUsed': '端口未使用',
+                'toast.portNotUsedMsg': '该端口当前未被占用',
+                'toast.saveSuccess': '保存成功',
+                'toast.updateSuccess': '更新成功',
+                'toast.updateSuccessMsg': '项目配置已更新',
+                'toast.addSuccess': '添加成功',
+                'toast.addSuccessMsg': '新项目已添加',
+                'toast.saveFailed': '保存失败',
+                'toast.exportSuccess': '导出成功',
+                'toast.exportSuccessMsg': '已导出 {count} 个项目配置',
+                'toast.exportWarning': '无项目可导出',
+                'toast.exportWarningMsg': '请先添加一些项目',
+                'toast.importSuccess': '导入完成',
+                'toast.importSuccessMsg': '成功导入 {success} 个项目',
+                'toast.importWarning': '导入完成',
+                'toast.importWarningMsg': '成功导入 {success} 个项目，失败 {fail} 个',
+                'toast.importFailed': '导入失败',
+                'toast.importFailedMsg': '无法解析 JSON 文件',
+                'toast.importInvalid': '导入失败',
+                'toast.importInvalidMsg': '无效的配置文件格式',
+                'toast.batchStartComplete': '批量启动完成',
+                'toast.batchStartMsg': '成功 {success} 个，失败 {fail} 个',
+                'toast.batchStopComplete': '批量停止完成',
+                'toast.batchStopMsg': '成功 {success} 个，失败 {fail} 个',
+                'toast.batchDeleteComplete': '批量删除完成',
+                'toast.batchDeleteMsg': '成功 {success} 个，失败 {fail} 个',
+
+                // Confirm dialogs
+                'confirm.delete': 'Delete this project?',
+                'confirm.forceKill': 'Force kill the process using port {port}?\n\nThis will terminate the process and all its children.',
+            },
+            'en-US': {
+                // Header
+                'app.title': 'Server Manager',
+                'app.tagline': 'Local development server dashboard',
+                'btn.addProject': '+ Add Project',
+                'btn.export': 'Export',
+                'btn.import': 'Import',
+
+                // Search & Filter
+                'search.placeholder': 'Search project name, directory or port...',
+                'filter.status': 'Status',
+                'filter.all': 'All',
+                'filter.running': 'Running',
+                'filter.stopped': 'Stopped',
+                'filter.external': 'External',
+                'btn.batchMode': 'Batch Mode',
+                'btn.exitBatch': 'Exit Batch',
+                'btn.sort': 'Sort',
+
+                // Sort options
+                'sort.nameAsc': 'Name (A-Z)',
+                'sort.nameDesc': 'Name (Z-A)',
+                'sort.portAsc': 'Port (Ascending)',
+                'sort.portDesc': 'Port (Descending)',
+                'sort.status': 'Status (Running First)',
+
+                // Results
+                'results.showing': 'Showing',
+                'results.of': '/',
+                'results.projects': 'projects',
+                'results.total': 'Total',
+
+                // Select All
+                'selectAll.label': 'Select All / Deselect All',
+
+                // Project Card
+                'project.open': 'Open',
+                'project.start': 'Start',
+                'project.stop': 'Stop',
+                'project.restart': 'Restart',
+                'project.forceKill': 'Force Kill',
+                'project.edit': 'Edit',
+                'project.delete': 'Delete',
+                'project.externalPort': 'Port in use externally',
+
+                // Empty State
+                'empty.noProjects': 'No projects configured yet.',
+                'empty.addFirst': 'Add your first project',
+                'empty.noResults': 'No matching projects found',
+                'empty.clearFilters': 'Clear filters',
+
+                // Logs
+                'logs.title': '/ Logs',
+                'logs.titleProject': '/ Logs: ',
+                'logs.clear': 'Clear',
+                'logs.empty': 'No logs yet. Select a running project to view logs.',
+
+                // Batch Actions
+                'batch.selected': 'Selected',
+                'batch.cancel': 'Cancel Selection',
+                'batch.start': 'Batch Start',
+                'batch.stop': 'Batch Stop',
+                'batch.delete': 'Batch Delete',
+                'batch.confirmStart': 'Start {count} projects?',
+                'batch.confirmStop': 'Stop {count} projects?',
+                'batch.confirmDelete': 'Delete {count} projects? This action cannot be undone!',
+
+                // Modal - Add/Edit Project
+                'modal.addTitle': 'Add Project',
+                'modal.editTitle': 'Edit Project',
+                'modal.name': 'Name',
+                'modal.namePlaceholder': 'My Project',
+                'modal.directory': 'Directory',
+                'modal.directoryPlaceholder': 'C:\\dev\\my-project',
+                'modal.directoryHint': 'Full path to the project folder',
+                'modal.command': 'Start Command',
+                'modal.commandPlaceholder': 'npm run dev',
+                'modal.commandHint': 'Command to start the dev server',
+                'modal.port': 'Port',
+                'modal.portPlaceholder': '3000',
+                'modal.portHint': 'Port the server will listen on',
+                'modal.url': 'URL',
+                'modal.urlOptional': '(optional)',
+                'modal.urlPlaceholder': 'http://localhost:3000',
+                'modal.urlHint': 'URL to open in browser when running',
+                'modal.cancel': 'Cancel',
+                'modal.save': 'Save',
+
+                // Modal - Import
+                'import.title': 'Import Project Configuration',
+                'import.total': 'Total',
+                'import.new': 'New',
+                'import.conflicts': 'Conflicts',
+                'import.conflict': 'Port Conflict',
+                'import.preview': 'Select JSON file to preview...',
+                'import.cancel': 'Cancel',
+                'import.confirm': 'Import Selected',
+                'import.confirmCount': 'Import Selected ({count})',
+
+                // Shortcuts
+                'shortcuts.title': 'Keyboard Shortcuts',
+                'shortcuts.search': 'Focus search',
+                'shortcuts.addProject': 'Add new project',
+                'shortcuts.closeModal': 'Close modal/menu',
+                'shortcuts.help': 'Show shortcuts help',
+                'shortcuts.theme': 'Toggle theme',
+                'shortcuts.batch': 'Batch mode',
+                'shortcuts.close': 'Close',
+
+                // Theme names
+                'theme.darkCamel': 'Dark Camel',
+                'theme.darkCamelDesc': 'Default dark theme',
+                'theme.light': 'Light',
+                'theme.lightDesc': 'Bright light theme',
+                'theme.eyeCare': 'Eye Care',
+                'theme.eyeCareDesc': 'Soft green/beige tones',
+                'theme.highContrast': 'High Contrast',
+                'theme.highContrastDesc': 'High contrast colors',
+                'theme.darkBlue': 'Dark Blue',
+                'theme.darkBlueDesc': 'Deep blue theme',
+                'theme.darkPurple': 'Dark Purple',
+                'theme.darkPurpleDesc': 'Deep purple theme',
+                'theme.darkCyan': 'Dark Cyan',
+                'theme.darkCyanDesc': 'Deep cyan theme',
+
+                // Toast messages
+                'toast.startSuccess': 'Started Successfully',
+                'toast.startSuccessMsg': 'Project started successfully',
+                'toast.startFailed': 'Start Failed',
+                'toast.stopSuccess': 'Stopped Successfully',
+                'toast.stopSuccessMsg': 'Project stopped successfully',
+                'toast.stopFailed': 'Stop Failed',
+                'toast.restartSuccess': 'Restarted Successfully',
+                'toast.restartSuccessMsg': 'Project restarted successfully',
+                'toast.restartFailed': 'Restart Failed',
+                'toast.deleteSuccess': 'Deleted Successfully',
+                'toast.deleteSuccessMsg': 'Project deleted successfully',
+                'toast.deleteFailed': 'Delete Failed',
+                'toast.killSuccess': 'Force Kill Successful',
+                'toast.killSuccessMsg': 'Killed {count} process(es)',
+                'toast.killFailed': 'Force Kill Failed',
+                'toast.portNotUsed': 'Port Not in Use',
+                'toast.portNotUsedMsg': 'This port is currently not in use',
+                'toast.saveSuccess': 'Saved Successfully',
+                'toast.updateSuccess': 'Updated Successfully',
+                'toast.updateSuccessMsg': 'Project configuration updated',
+                'toast.addSuccess': 'Added Successfully',
+                'toast.addSuccessMsg': 'New project added',
+                'toast.saveFailed': 'Save Failed',
+                'toast.exportSuccess': 'Exported Successfully',
+                'toast.exportSuccessMsg': 'Exported {count} project(s)',
+                'toast.exportWarning': 'No Projects to Export',
+                'toast.exportWarningMsg': 'Please add some projects first',
+                'toast.importSuccess': 'Import Complete',
+                'toast.importSuccessMsg': 'Successfully imported {success} project(s)',
+                'toast.importWarning': 'Import Complete',
+                'toast.importWarningMsg': 'Imported {success} project(s), failed {fail}',
+                'toast.importFailed': 'Import Failed',
+                'toast.importFailedMsg': 'Unable to parse JSON file',
+                'toast.importInvalid': 'Import Failed',
+                'toast.importInvalidMsg': 'Invalid configuration file format',
+                'toast.batchStartComplete': 'Batch Start Complete',
+                'toast.batchStartMsg': 'Success: {success}, Failed: {fail}',
+                'toast.batchStopComplete': 'Batch Stop Complete',
+                'toast.batchStopMsg': 'Success: {success}, Failed: {fail}',
+                'toast.batchDeleteComplete': 'Batch Delete Complete',
+                'toast.batchDeleteMsg': 'Success: {success}, Failed: {fail}',
+
+                // Confirm dialogs
+                'confirm.delete': 'Delete this project?',
+                'confirm.forceKill': 'Force kill the process using port {port}?\n\nThis will terminate the process and all its children.',
+            }
+        };
+
+        function t(key, params = {}) {
+            let text = translations[currentLanguage][key] || key;
+
+            // Replace parameters like {count}, {success}, {fail}
+            Object.keys(params).forEach(param => {
+                text = text.replace(new RegExp(`\\{${param}\\}`, 'g'), params[param]);
+            });
+
+            return text;
+        }
+
+        function changeLanguage(lang) {
+            currentLanguage = lang;
+            localStorage.setItem('language', lang);
+
+            // Update language button
+            document.getElementById('current-language').textContent = lang === 'zh-CN' ? '中文' : 'English';
+
+            // Update active state
+            document.querySelectorAll('.language-option').forEach(option => {
+                const checkIcon = option.querySelector('.language-check');
+                if (option.dataset.lang === lang) {
+                    option.classList.add('active');
+                    checkIcon.style.opacity = '1';
+                } else {
+                    option.classList.remove('active');
+                    checkIcon.style.opacity = '0';
+                }
+            });
+
+            // Re-render everything
+            renderProjects();
+            updateResultsCount();
+            updateLogTitle();
+            updateBatchActionsBar();
+            updateStaticTexts();
+
+            closeLangDropdown();
+        }
+
+        let langDropdownOpen = false;
+
+        function toggleLangDropdown(event) {
+            event.stopPropagation();
+            langDropdownOpen = !langDropdownOpen;
+            const dropdown = document.getElementById('lang-dropdown');
+            if (langDropdownOpen) {
+                dropdown.classList.add('show');
+            } else {
+                dropdown.classList.remove('show');
+            }
+        }
+
+        function closeLangDropdown() {
+            langDropdownOpen = false;
+            document.getElementById('lang-dropdown').classList.remove('show');
+        }
+
+        // Close language dropdown when clicking outside
+        document.addEventListener('click', (event) => {
+            if (langDropdownOpen && !event.target.closest('.language-switcher')) {
+                closeLangDropdown();
+            }
+        });
+
+        function updateStaticTexts() {
+            // Update header
+            document.querySelector('.tagline').textContent = t('app.tagline');
+
+            // Update search placeholder
+            document.getElementById('search-input').placeholder = t('search.placeholder');
+
+            // Update filter labels
+            document.querySelector('.filter-label').textContent = t('filter.status');
+            document.querySelectorAll('.filter-chip').forEach(chip => {
+                const filter = chip.dataset.filter;
+                chip.textContent = t(`filter.${filter}`);
+            });
+
+            // Update batch mode button
+            const batchModeText = document.getElementById('batch-mode-text');
+            if (batchModeText) {
+                batchModeText.textContent = batchMode ? t('btn.exitBatch') : t('btn.batchMode');
+            }
+
+            // Update sort button
+            document.querySelector('.sort-button span').textContent = t('btn.sort');
+
+            // Update sort options
+            document.querySelectorAll('.sort-option').forEach(option => {
+                const sortType = option.dataset.sort;
+                option.querySelector('span').textContent = t(`sort.${sortType}`);
+            });
+
+            // Update select all label
+            const selectAllLabel = document.querySelector('.select-all-label');
+            if (selectAllLabel) {
+                selectAllLabel.textContent = t('selectAll.label');
+            }
+
+            // Update log header
+            document.querySelector('.log-header button').textContent = t('logs.clear');
+
+            // Update export/import buttons
+            const headerButtons = document.querySelectorAll('header button');
+            headerButtons.forEach(btn => {
+                const svgContent = btn.querySelector('svg');
+                const textContent = btn.textContent.trim();
+
+                if (textContent.includes('导出') || textContent.includes('Export')) {
+                    btn.innerHTML = '';
+                    if (svgContent) btn.appendChild(svgContent.cloneNode(true));
+                    btn.appendChild(document.createTextNode(t('btn.export')));
+                } else if (textContent.includes('导入') || textContent.includes('Import')) {
+                    btn.innerHTML = '';
+                    if (svgContent) btn.appendChild(svgContent.cloneNode(true));
+                    btn.appendChild(document.createTextNode(t('btn.import')));
+                } else if (textContent.includes('添加项目') || textContent.includes('Add Project')) {
+                    btn.textContent = t('btn.addProject');
+                }
+            });
+
+            // Update theme dropdown
+            document.querySelectorAll('.theme-option').forEach(option => {
+                const theme = option.dataset.theme;
+                const nameSpan = option.querySelector('.theme-label-name');
+                const descSpan = option.querySelector('.theme-label-desc');
+
+                // Convert theme name like 'dark-camel' to 'darkCamel'
+                const themeKey = theme.replace(/-([a-z])/g, (g) => g[1].toUpperCase());
+
+                if (nameSpan) nameSpan.textContent = t(`theme.${themeKey}`);
+                if (descSpan) descSpan.textContent = t(`theme.${themeKey}Desc`);
+            });
+
+            // Update shortcuts panel
+            const shortcutItems = document.querySelectorAll('.shortcut-item');
+            const shortcutKeys = ['search', 'addProject', 'closeModal', 'help', 'theme', 'batch'];
+            shortcutItems.forEach((item, index) => {
+                if (shortcutKeys[index]) {
+                    item.querySelector('.shortcut-desc').textContent = t(`shortcuts.${shortcutKeys[index]}`);
+                }
+            });
+            document.querySelector('.shortcuts-panel h2').textContent = t('shortcuts.title');
+            document.querySelector('.shortcuts-close').textContent = t('shortcuts.close');
+
+            // Update batch actions bar
+            const batchCancel = document.querySelector('.batch-actions-bar .btn-secondary');
+            if (batchCancel) batchCancel.textContent = t('batch.cancel');
+
+            const batchButtons = document.querySelectorAll('.batch-actions button');
+            if (batchButtons.length >= 3) {
+                batchButtons[0].textContent = t('batch.start');
+                batchButtons[1].textContent = t('batch.stop');
+                batchButtons[2].textContent = t('batch.delete');
+            }
+        }
+
+        // =================================================================
+        // API Helpers
+        // =================================================================
+        const API_TIMEOUT_MS = 10000;  // 10 second timeout
+
+        async function api(method, endpoint, body = null) {
+            const controller = new AbortController();
+            const timeoutId = setTimeout(() => controller.abort(), API_TIMEOUT_MS);
+
+            const options = {
+                method,
+                headers: { 'Content-Type': 'application/json' },
+                signal: controller.signal,
+            };
+            if (body) {
+                options.body = JSON.stringify(body);
+            }
+
+            try {
+                const response = await fetch(`/api${endpoint}`, options);
+                clearTimeout(timeoutId);
+
+                if (!response.ok) {
+                    let errorMessage = 'API error';
+                    try {
+                        const errorData = await response.json();
+                        errorMessage = errorData.detail || errorMessage;
+                    } catch {
+                        // Response wasn't JSON, use status text
+                        errorMessage = response.statusText || errorMessage;
+                    }
+                    throw new Error(errorMessage);
+                }
+
+                // Handle empty responses
+                const text = await response.text();
+                if (!text) {
+                    return null;
+                }
+
+                try {
+                    return JSON.parse(text);
+                } catch {
+                    throw new Error('Invalid JSON response from server');
+                }
+            } catch (err) {
+                clearTimeout(timeoutId);
+                if (err.name === 'AbortError') {
+                    throw new Error('Request timed out - server may be unresponsive');
+                }
+                throw err;
+            }
+        }
+
+        // =================================================================
+        // Data Fetching
+        // =================================================================
+        let consecutiveErrors = 0;
+        const MAX_CONSECUTIVE_ERRORS = 3;
+
+        async function fetchProjects() {
+            try {
+                projects = await api('GET', '/projects');
+                consecutiveErrors = 0;  // Reset on success
+                renderProjects();
+                updateResultsCount();
+            } catch (err) {
+                consecutiveErrors++;
+                console.error('Failed to fetch projects:', err.message);
+
+                // Show warning after multiple consecutive failures
+                if (consecutiveErrors >= MAX_CONSECUTIVE_ERRORS) {
+                    console.warn('Multiple consecutive API failures - server may be down');
+                }
+            }
+        }
+
+        async function fetchLogs() {
+            if (!selectedProjectId) return;
+
+            try {
+                const data = await api('GET', `/projects/${selectedProjectId}/logs`);
+                if (data && data.logs) {
+                    renderLogs(data.logs);
+                }
+            } catch (err) {
+                // Don't spam console for log fetch failures during polling
+                if (err.message.includes('timed out')) {
+                    console.warn('Log fetch timed out');
+                }
+            }
+        }
+
+        // =================================================================
+        // Rendering
+        // =================================================================
+        function getFilteredAndSortedProjects() {
+            let filtered = projects;
+
+            // Apply search filter
+            if (searchQuery.trim()) {
+                const query = searchQuery.toLowerCase();
+                filtered = filtered.filter(project => {
+                    return (
+                        project.name.toLowerCase().includes(query) ||
+                        project.directory.toLowerCase().includes(query) ||
+                        project.port.toString().includes(query)
+                    );
+                });
+            }
+
+            // Apply status filter
+            if (statusFilter !== 'all') {
+                filtered = filtered.filter(project => project.status === statusFilter);
+            }
+
+            // Apply sorting
+            filtered = [...filtered].sort((a, b) => {
+                switch (sortOrder) {
+                    case 'name-asc':
+                        return a.name.localeCompare(b.name);
+                    case 'name-desc':
+                        return b.name.localeCompare(a.name);
+                    case 'port-asc':
+                        return a.port - b.port;
+                    case 'port-desc':
+                        return b.port - a.port;
+                    case 'status':
+                        const statusOrder = { running: 0, external: 1, stopped: 2 };
+                        return (statusOrder[a.status] || 3) - (statusOrder[b.status] || 3);
+                    default:
+                        return 0;
+                }
+            });
+
+            return filtered;
+        }
+
+        function renderProjects() {
+            const container = document.getElementById('projects-list');
+            const filteredProjects = getFilteredAndSortedProjects();
+
+            if (projects.length === 0) {
+                container.innerHTML = `
+                    <div class="empty-state">
+                        <p>${t('empty.noProjects')}</p>
+                        <button class="btn btn-primary" onclick="openAddModal()">${t('empty.addFirst')}</button>
+                    </div>
+                `;
+                return;
+            }
+
+            if (filteredProjects.length === 0) {
+                container.innerHTML = `
+                    <div class="empty-state">
+                        <p>${t('empty.noResults')}</p>
+                        <button class="btn btn-secondary" onclick="clearFilters()">${t('empty.clearFilters')}</button>
+                    </div>
+                `;
+                return;
+            }
+
+            container.innerHTML = filteredProjects.map(project => `
+                <div class="project-card ${project.id === selectedProjectId ? 'selected' : ''}" data-id="${project.id}">
+                    ${batchMode ? `<input type="checkbox" class="project-checkbox" ${selectedProjects.has(project.id) ? 'checked' : ''} onchange="toggleProjectSelection('${project.id}')">` : ''}
+                    <div class="status-indicator ${project.status}"></div>
+                    <div class="project-info" onclick="selectProject('${project.id}')">
+                        <div class="project-name">${escapeHtml(project.name)}</div>
+                        <div class="project-meta">
+                            localhost:${project.port} &bull; ${escapeHtml(project.directory)}
+                            ${project.status === 'external' ? ` &bull; ${t('project.externalPort')}` : ''}
+                        </div>
+                    </div>
+                    <div class="project-actions">
+                        ${renderActionButton(project)}
+                        ${project.url && (project.status === 'running' || project.status === 'external') ? `<a href="${escapeHtml(project.url)}" target="_blank" class="btn btn-sm btn-secondary" title="Open in browser">Open</a>` : ''}
+                        <div class="dropdown">
+                            <button class="btn-icon" onclick="toggleDropdown('${project.id}', event)">&#8942;</button>
+                            <div id="dropdown-${project.id}" class="dropdown-menu ${openDropdownId === project.id ? 'show' : ''}">
+                                <button class="dropdown-item" onclick="openEditModal('${project.id}')">Edit</button>
+                                <button class="dropdown-item danger" onclick="deleteProject('${project.id}')">Delete</button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            `).join('');
+        }
+
+        function renderActionButton(project) {
+            if (project.status === 'running') {
+                return `
+                    <button class="btn btn-sm btn-secondary" onclick="restartProject('${project.id}')">${t('project.restart')}</button>
+                    <button class="btn btn-sm btn-danger" onclick="stopProject('${project.id}')">${t('project.stop')}</button>
+                `;
+            } else if (project.status === 'external') {
+                return `<button class="btn btn-sm btn-danger" onclick="forceKillPort(${project.port})" title="${t('project.forceKill')}">${t('project.forceKill')}</button>`;
+            } else {
+                return `<button class="btn btn-sm btn-primary" onclick="startProject('${project.id}')">${t('project.start')}</button>`;
+            }
+        }
+
+        function renderLogs(logs) {
+            const container = document.getElementById('log-content');
+            if (!logs || logs.length === 0) {
+                container.innerHTML = '';
+                return;
+            }
+            container.innerHTML = logs.map(line =>
+                `<div class="log-line">${escapeHtml(line)}</div>`
+            ).join('');
+            container.scrollTop = container.scrollHeight;
+        }
+
+        function updateLogTitle() {
+            const title = document.getElementById('log-title');
+            if (selectedProjectId) {
+                const project = projects.find(p => p.id === selectedProjectId);
+                title.textContent = project ? `${t('logs.titleProject')}${project.name}` : t('logs.title');
+            } else {
+                title.textContent = t('logs.title');
+            }
+        }
+
+        // =================================================================
+        // Actions
+        // =================================================================
+        function selectProject(id) {
+            selectedProjectId = id;
+            updateLogTitle();
+            renderProjects();
+            fetchLogs();
+        }
+
+        async function startProject(id) {
+            try {
+                await api('POST', `/projects/${id}/start`);
+                selectProject(id);
+                await fetchProjects();
+                showToast('success', '启动成功', '项目已成功启动');
+            } catch (err) {
+                showToast('error', '启动失败', err.message);
+            }
+        }
+
+        async function stopProject(id) {
+            try {
+                await api('POST', `/projects/${id}/stop`);
+                await fetchProjects();
+                showToast('success', '停止成功', '项目已成功停止');
+            } catch (err) {
+                showToast('error', '停止失败', err.message);
+            }
+        }
+
+        async function restartProject(id) {
+            try {
+                await api('POST', `/projects/${id}/restart`);
+                selectProject(id);
+                await fetchProjects();
+                showToast('success', '重启成功', '项目已成功重启');
+            } catch (err) {
+                showToast('error', '重启失败', err.message);
+            }
+        }
+
+        async function deleteProject(id) {
+            if (!confirm('Delete this project?')) return;
+
+            try {
+                await api('DELETE', `/projects/${id}`);
+                if (selectedProjectId === id) {
+                    selectedProjectId = null;
+                    updateLogTitle();
+                    clearLogs();
+                }
+                await fetchProjects();
+                showToast('success', '删除成功', '项目已成功删除');
+            } catch (err) {
+                showToast('error', '删除失败', err.message);
+            }
+        }
+
+        async function forceKillPort(port) {
+            if (!confirm(`Force kill the process using port ${port}?\n\nThis will terminate the process and all its children.`)) return;
+
+            try {
+                const result = await api('POST', `/ports/${port}/kill`);
+                if (result.status === 'not_in_use') {
+                    showToast('info', '端口未使用', '该端口当前未被占用');
+                } else {
+                    const killedCount = result.killed ? result.killed.length : 0;
+                    showToast('success', '强制终止成功', `已终止 ${killedCount} 个进程`);
+                }
+                await fetchProjects();
+            } catch (err) {
+                showToast('error', '强制终止失败', err.message);
+            }
+        }
+
+        function clearLogs() {
+            document.getElementById('log-content').innerHTML = '';
+        }
+
+        // =================================================================
+        // Dropdown Menu
+        // =================================================================
+        function toggleDropdown(id, event) {
+            event.stopPropagation();
+            openDropdownId = openDropdownId === id ? null : id;
+            renderProjects();
+        }
+
+        document.addEventListener('click', () => {
+            if (openDropdownId) {
+                openDropdownId = null;
+                renderProjects();
+            }
+        });
+
+        // =================================================================
+        // Modal
+        // =================================================================
+        function openAddModal() {
+            document.getElementById('modal-title').textContent = 'Add Project';
+            document.getElementById('edit-project-id').value = '';
+            document.getElementById('project-form').reset();
+            document.getElementById('modal-backdrop').classList.add('show');
+        }
+
+        function openEditModal(id) {
+            const project = projects.find(p => p.id === id);
+            if (!project) return;
+
+            document.getElementById('modal-title').textContent = 'Edit Project';
+            document.getElementById('edit-project-id').value = id;
+            document.getElementById('project-name').value = project.name;
+            document.getElementById('project-directory').value = project.directory;
+            document.getElementById('project-command').value = project.start_command;
+            document.getElementById('project-port').value = project.port;
+            document.getElementById('project-url').value = project.url || '';
+            document.getElementById('modal-backdrop').classList.add('show');
+
+            openDropdownId = null;
+            renderProjects();
+        }
+
+        function closeModal() {
+            document.getElementById('modal-backdrop').classList.remove('show');
+        }
+
+        function closeModalOnBackdrop(event) {
+            if (event.target === event.currentTarget) {
+                closeModal();
+            }
+        }
+
+        async function saveProject(event) {
+            event.preventDefault();
+
+            const id = document.getElementById('edit-project-id').value;
+            const urlValue = document.getElementById('project-url').value.trim();
+            const data = {
+                name: document.getElementById('project-name').value,
+                directory: document.getElementById('project-directory').value,
+                start_command: document.getElementById('project-command').value,
+                port: parseInt(document.getElementById('project-port').value, 10),
+                url: urlValue || null,
+            };
+
+            try {
+                if (id) {
+                    await api('PUT', `/projects/${id}`, data);
+                    showToast('success', t('toast.updateSuccess'), t('toast.updateSuccessMsg'));
+                } else {
+                    await api('POST', '/projects', data);
+                    showToast('success', t('toast.addSuccess'), t('toast.addSuccessMsg'));
+                }
+                closeModal();
+                await fetchProjects();
+            } catch (err) {
+                showToast('error', t('toast.saveFailed'), err.message);
+            }
+        }
+
+        function openAddModal() {
+            document.getElementById('modal-title').textContent = t('modal.addTitle');
+            document.getElementById('edit-project-id').value = '';
+            document.getElementById('project-form').reset();
+
+            // Update form labels
+            updateModalLabels();
+
+            document.getElementById('modal-backdrop').classList.add('show');
+        }
+
+        function openEditModal(id) {
+            const project = projects.find(p => p.id === id);
+            if (!project) return;
+
+            document.getElementById('modal-title').textContent = t('modal.editTitle');
+            document.getElementById('edit-project-id').value = id;
+            document.getElementById('project-name').value = project.name;
+            document.getElementById('project-directory').value = project.directory;
+            document.getElementById('project-command').value = project.start_command;
+            document.getElementById('project-port').value = project.port;
+            document.getElementById('project-url').value = project.url || '';
+
+            // Update form labels
+            updateModalLabels();
+
+            document.getElementById('modal-backdrop').classList.add('show');
+
+            openDropdownId = null;
+            renderProjects();
+        }
+
+        function updateModalLabels() {
+            // Update all form labels and placeholders
+            const labels = document.querySelectorAll('#project-form label');
+            const inputs = document.querySelectorAll('#project-form input');
+            const smalls = document.querySelectorAll('#project-form small');
+
+            if (labels[0]) labels[0].textContent = t('modal.name');
+            if (labels[1]) labels[1].textContent = t('modal.directory');
+            if (labels[2]) labels[2].textContent = t('modal.command');
+            if (labels[3]) labels[3].textContent = t('modal.port');
+            if (labels[4]) {
+                labels[4].innerHTML = `${t('modal.url')} <span style="font-weight: 400; text-transform: none; letter-spacing: 0; color: var(--text-muted);">${t('modal.urlOptional')}</span>`;
+            }
+
+            if (inputs[1]) inputs[1].placeholder = t('modal.namePlaceholder');
+            if (inputs[2]) inputs[2].placeholder = t('modal.directoryPlaceholder');
+            if (inputs[3]) inputs[3].placeholder = t('modal.commandPlaceholder');
+            if (inputs[4]) inputs[4].placeholder = t('modal.portPlaceholder');
+            if (inputs[5]) inputs[5].placeholder = t('modal.urlPlaceholder');
+
+            if (smalls[0]) smalls[0].textContent = t('modal.directoryHint');
+            if (smalls[1]) smalls[1].textContent = t('modal.commandHint');
+            if (smalls[2]) smalls[2].textContent = t('modal.portHint');
+            if (smalls[3]) smalls[3].textContent = t('modal.urlHint');
+
+            // Update buttons
+            document.querySelector('#project-form .btn-secondary').textContent = t('modal.cancel');
+            document.querySelector('#project-form .btn-primary').textContent = t('modal.save');
+        }
+
+        // =================================================================
+        // Utilities
+        // =================================================================
+        function escapeHtml(text) {
+            const div = document.createElement('div');
+            div.textContent = text;
+            return div.innerHTML;
+        }
+
+        // =================================================================
+        // Polling
+        // =================================================================
+        function startPolling() {
+            // Poll projects every 3 seconds
+            pollInterval = setInterval(fetchProjects, 3000);
+
+            // Poll logs every 2 seconds when a project is selected
+            logPollInterval = setInterval(() => {
+                if (selectedProjectId) {
+                    fetchLogs();
+                }
+            }, 2000);
+        }
+
+        // =================================================================
+        // Theme Management
+        // =================================================================
+        const THEMES = {
+            'dark-camel': 'Dark Camel',
+            'light': 'Light',
+            'eye-care': 'Eye Care',
+            'high-contrast': 'High Contrast',
+            'dark-blue': 'Dark Blue',
+            'dark-purple': 'Dark Purple',
+            'dark-cyan': 'Dark Cyan'
+        };
+
+        let themeDropdownOpen = false;
+
+        function loadTheme() {
+            const savedTheme = localStorage.getItem('theme') || 'light';
+            applyTheme(savedTheme);
+        }
+
+        function loadLanguage() {
+            const savedLang = localStorage.getItem('language') || 'zh-CN';
+            currentLanguage = savedLang;
+            document.getElementById('current-language').textContent = savedLang === 'zh-CN' ? '中文' : 'English';
+
+            // Update active state
+            document.querySelectorAll('.language-option').forEach(option => {
+                if (option.dataset.lang === savedLang) {
+                    option.classList.add('active');
+                    option.querySelector('.language-check').style.opacity = '1';
+                } else {
+                    option.classList.remove('active');
+                    option.querySelector('.language-check').style.opacity = '0';
+                }
+            });
+        }
+
+        function applyTheme(theme) {
+            document.documentElement.setAttribute('data-theme', theme);
+
+            // Update theme name display
+            const themeNames = {
+                'light': 'Light',
+                'dark-camel': 'Dark Camel',
+                'eye-care': 'Eye Care',
+                'high-contrast': 'High Contrast',
+                'dark-blue': 'Dark Blue',
+                'dark-purple': 'Dark Purple',
+                'dark-cyan': 'Dark Cyan'
+            };
+            document.getElementById('current-theme-name').textContent = themeNames[theme] || 'Light';
+
+            // Update active state in dropdown
+            document.querySelectorAll('.theme-option').forEach(option => {
+                if (option.dataset.theme === theme) {
+                    option.classList.add('active');
+                } else {
+                    option.classList.remove('active');
+                }
+            });
+        }
+
+        function changeTheme(theme) {
+            applyTheme(theme);
+            localStorage.setItem('theme', theme);
+            closeThemeDropdown();
+        }
+
+        function toggleThemeDropdown(event) {
+            event.stopPropagation();
+            themeDropdownOpen = !themeDropdownOpen;
+            const dropdown = document.getElementById('theme-dropdown');
+            if (themeDropdownOpen) {
+                dropdown.classList.add('show');
+            } else {
+                dropdown.classList.remove('show');
+            }
+        }
+
+        function closeThemeDropdown() {
+            themeDropdownOpen = false;
+            document.getElementById('theme-dropdown').classList.remove('show');
+        }
+
+        // Close theme dropdown when clicking outside
+        document.addEventListener('click', (event) => {
+            if (themeDropdownOpen && !event.target.closest('.theme-switcher')) {
+                closeThemeDropdown();
+            }
+        });
+
+        // =================================================================
+        // Search & Filter
+        // =================================================================
+        function handleSearch() {
+            searchQuery = document.getElementById('search-input').value;
+            renderProjects();
+            updateResultsCount();
+        }
+
+        function setStatusFilter(filter) {
+            statusFilter = filter;
+
+            // Update active state
+            document.querySelectorAll('.filter-chip').forEach(chip => {
+                if (chip.dataset.filter === filter) {
+                    chip.classList.add('active');
+                } else {
+                    chip.classList.remove('active');
+                }
+            });
+
+            renderProjects();
+            updateResultsCount();
+        }
+
+        function setSortOrder(order) {
+            sortOrder = order;
+            localStorage.setItem('sortOrder', order);
+
+            // Update active state
+            document.querySelectorAll('.sort-option').forEach(option => {
+                const checkIcon = option.querySelector('.sort-check');
+                if (option.dataset.sort === order) {
+                    option.classList.add('active');
+                    checkIcon.style.opacity = '1';
+                } else {
+                    option.classList.remove('active');
+                    checkIcon.style.opacity = '0';
+                }
+            });
+
+            closeSortMenu();
+            renderProjects();
+        }
+
+        function toggleSortMenu(event) {
+            event.stopPropagation();
+            sortMenuOpen = !sortMenuOpen;
+            const menu = document.getElementById('sort-menu');
+            if (sortMenuOpen) {
+                menu.classList.add('show');
+            } else {
+                menu.classList.remove('show');
+            }
+        }
+
+        function closeSortMenu() {
+            sortMenuOpen = false;
+            document.getElementById('sort-menu').classList.remove('show');
+        }
+
+        function clearFilters() {
+            searchQuery = '';
+            statusFilter = 'all';
+            document.getElementById('search-input').value = '';
+            setStatusFilter('all');
+        }
+
+        function updateResultsCount() {
+            const filtered = getFilteredAndSortedProjects();
+            const countEl = document.getElementById('results-count');
+
+            if (searchQuery.trim() || statusFilter !== 'all') {
+                countEl.textContent = `${t('results.showing')} ${filtered.length} ${t('results.of')} ${projects.length} ${t('results.projects')}`;
+            } else {
+                countEl.textContent = `${t('results.total')} ${projects.length} ${t('results.projects')}`;
+            }
+        }
+
+        // Close sort menu when clicking outside
+        document.addEventListener('click', (event) => {
+            if (sortMenuOpen && !event.target.closest('.sort-dropdown')) {
+                closeSortMenu();
+            }
+        });
+
+        // =================================================================
+        // Keyboard Shortcuts
+        // =================================================================
+        let shortcutsPanelOpen = false;
+
+        function toggleShortcutsPanel() {
+            shortcutsPanelOpen = !shortcutsPanelOpen;
+            const panel = document.getElementById('shortcuts-panel');
+            if (shortcutsPanelOpen) {
+                panel.classList.add('show');
+            } else {
+                panel.classList.remove('show');
+            }
+        }
+
+        // Global keyboard shortcuts
+        document.addEventListener('keydown', (event) => {
+            // Ignore shortcuts when typing in input fields
+            if (event.target.tagName === 'INPUT' || event.target.tagName === 'TEXTAREA') {
+                // Allow Esc to blur input
+                if (event.key === 'Escape') {
+                    event.target.blur();
+                }
+                return;
+            }
+
+            // Ctrl/Cmd + K - Focus search
+            if ((event.ctrlKey || event.metaKey) && event.key === 'k') {
+                event.preventDefault();
+                document.getElementById('search-input').focus();
+            }
+
+            // Ctrl/Cmd + N - Add new project
+            if ((event.ctrlKey || event.metaKey) && event.key === 'n') {
+                event.preventDefault();
+                openAddModal();
+            }
+
+            // Ctrl/Cmd + T - Toggle theme dropdown
+            if ((event.ctrlKey || event.metaKey) && event.key === 't') {
+                event.preventDefault();
+                const dropdown = document.getElementById('theme-dropdown');
+                themeDropdownOpen = !themeDropdownOpen;
+                if (themeDropdownOpen) {
+                    dropdown.classList.add('show');
+                } else {
+                    dropdown.classList.remove('show');
+                }
+            }
+
+            // Ctrl/Cmd + B - Toggle batch mode
+            if ((event.ctrlKey || event.metaKey) && event.key === 'b') {
+                event.preventDefault();
+                toggleBatchMode();
+            }
+
+            // ? - Show shortcuts help
+            if (event.key === '?' && !event.shiftKey) {
+                event.preventDefault();
+                toggleShortcutsPanel();
+            }
+
+            // Esc - Close modals/dropdowns
+            if (event.key === 'Escape') {
+                if (shortcutsPanelOpen) {
+                    toggleShortcutsPanel();
+                } else if (themeDropdownOpen) {
+                    closeThemeDropdown();
+                } else if (sortMenuOpen) {
+                    closeSortMenu();
+                } else if (openDropdownId) {
+                    openDropdownId = null;
+                    renderProjects();
+                } else {
+                    closeModal();
+                }
+            }
+        });
+
+        // =================================================================
+        // Import/Export
+        // =================================================================
+        let importData = null;
+        let selectedImports = new Set();
+
+        function exportProjects() {
+            if (projects.length === 0) {
+                showToast('warning', '无项目可导出', '请先添加一些项目');
+                return;
+            }
+
+            const exportData = {
+                version: '1.0',
+                exported_at: new Date().toISOString(),
+                projects: projects.map(p => ({
+                    name: p.name,
+                    directory: p.directory,
+                    start_command: p.start_command,
+                    port: p.port,
+                    url: p.url || null
+                }))
+            };
+
+            const blob = new Blob([JSON.stringify(exportData, null, 2)], { type: 'application/json' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = `devserver-projects-${new Date().toISOString().split('T')[0]}.json`;
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+            URL.revokeObjectURL(url);
+
+            showToast('success', '导出成功', `已导出 ${projects.length} 个项目配置`);
+        }
+
+        function importProjects(event) {
+            const file = event.target.files[0];
+            if (!file) return;
+
+            const reader = new FileReader();
+            reader.onload = (e) => {
+                try {
+                    const data = JSON.parse(e.target.result);
+
+                    if (!data.projects || !Array.isArray(data.projects)) {
+                        showToast('error', '导入失败', '无效的配置文件格式');
+                        return;
+                    }
+
+                    importData = data.projects;
+                    selectedImports.clear();
+
+                    // Auto-select all non-conflicting projects
+                    importData.forEach((project, index) => {
+                        const hasConflict = projects.some(p => p.port === project.port);
+                        if (!hasConflict) {
+                            selectedImports.add(index);
+                        }
+                    });
+
+                    showImportPreview();
+                    document.getElementById('import-modal-backdrop').classList.add('show');
+                } catch (err) {
+                    showToast('error', '导入失败', '无法解析 JSON 文件');
+                }
+            };
+            reader.readAsText(file);
+
+            // Reset file input
+            event.target.value = '';
+        }
+
+        function showImportPreview() {
+            if (!importData) return;
+
+            const existingPorts = new Set(projects.map(p => p.port));
+            let conflictCount = 0;
+            let newCount = 0;
+
+            const previewHtml = importData.map((project, index) => {
+                const hasConflict = existingPorts.has(project.port);
+                if (hasConflict) conflictCount++;
+                else newCount++;
+
+                return `
+                    <div class="import-item">
+                        <input
+                            type="checkbox"
+                            class="import-item-checkbox"
+                            ${selectedImports.has(index) ? 'checked' : ''}
+                            onchange="toggleImportSelection(${index})"
+                        >
+                        <div class="import-item-info">
+                            <div class="import-item-name">${escapeHtml(project.name)}</div>
+                            <div class="import-item-meta">
+                                端口 ${project.port} · ${escapeHtml(project.directory)}
+                            </div>
+                        </div>
+                        ${hasConflict ? '<span class="import-item-conflict">端口冲突</span>' : ''}
+                    </div>
+                `;
+            }).join('');
+
+            document.getElementById('import-preview').innerHTML = previewHtml;
+            document.getElementById('import-stats').style.display = 'flex';
+            document.getElementById('import-total').textContent = importData.length;
+            document.getElementById('import-new').textContent = newCount;
+            document.getElementById('import-conflicts').textContent = conflictCount;
+
+            updateImportButton();
+        }
+
+        function toggleImportSelection(index) {
+            if (selectedImports.has(index)) {
+                selectedImports.delete(index);
+            } else {
+                selectedImports.add(index);
+            }
+            updateImportButton();
+        }
+
+        function updateImportButton() {
+            const btn = document.getElementById('import-confirm-btn');
+            btn.disabled = selectedImports.size === 0;
+            btn.textContent = selectedImports.size > 0
+                ? `导入选中项目 (${selectedImports.size})`
+                : '导入选中项目';
+        }
+
+        async function confirmImport() {
+            if (selectedImports.size === 0) return;
+
+            const selectedProjects = Array.from(selectedImports).map(i => importData[i]);
+            let successCount = 0;
+            let failCount = 0;
+
+            for (const project of selectedProjects) {
+                try {
+                    await api('POST', '/projects', project);
+                    successCount++;
+                } catch (err) {
+                    console.error('Failed to import project:', err);
+                    failCount++;
+                }
+            }
+
+            closeImportModal();
+            await fetchProjects();
+
+            showToast(
+                failCount === 0 ? 'success' : 'warning',
+                '导入完成',
+                `成功导入 ${successCount} 个项目${failCount > 0 ? `，失败 ${failCount} 个` : ''}`
+            );
+        }
+
+        function closeImportModal() {
+            document.getElementById('import-modal-backdrop').classList.remove('show');
+            importData = null;
+            selectedImports.clear();
+        }
+
+        // =================================================================
+        // Toast Notifications
+        // =================================================================
+        function showToast(type, title, message, duration = 5000) {
+            const container = document.getElementById('toast-container');
+            const toast = document.createElement('div');
+            toast.className = `toast ${type}`;
+
+            const icons = {
+                success: '<svg class="toast-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg>',
+                error: '<svg class="toast-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="15" y1="9" x2="9" y2="15"/><line x1="9" y1="9" x2="15" y2="15"/></svg>',
+                warning: '<svg class="toast-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>',
+                info: '<svg class="toast-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="12" y1="16" x2="12" y2="12"/><line x1="12" y1="8" x2="12.01" y2="8"/></svg>'
+            };
+
+            toast.innerHTML = `
+                ${icons[type] || icons.info}
+                <div class="toast-content">
+                    <div class="toast-title">${escapeHtml(title)}</div>
+                    ${message ? `<div class="toast-message">${escapeHtml(message)}</div>` : ''}
+                </div>
+                <button class="toast-close" onclick="removeToast(this.parentElement)">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <line x1="18" y1="6" x2="6" y2="18"/>
+                        <line x1="6" y1="6" x2="18" y2="18"/>
+                    </svg>
+                </button>
+            `;
+
+            container.appendChild(toast);
+
+            // Auto remove after duration
+            if (duration > 0) {
+                setTimeout(() => removeToast(toast), duration);
+            }
+
+            return toast;
+        }
+
+        function removeToast(toast) {
+            if (!toast || toast.classList.contains('removing')) return;
+
+            toast.classList.add('removing');
+            setTimeout(() => {
+                if (toast.parentElement) {
+                    toast.parentElement.removeChild(toast);
+                }
+            }, 300);
+        }
+
+        // =================================================================
+        // Batch Operations
+        // =================================================================
+        function toggleBatchMode() {
+            batchMode = !batchMode;
+
+            if (!batchMode) {
+                selectedProjects.clear();
+                updateBatchActionsBar();
+            }
+
+            const selectAllContainer = document.getElementById('select-all-container');
+            selectAllContainer.style.display = batchMode ? 'flex' : 'none';
+
+            const batchModeBtn = document.getElementById('batch-mode-btn');
+            const batchModeText = document.getElementById('batch-mode-text');
+            if (batchMode) {
+                batchModeBtn.classList.add('btn-primary');
+                batchModeBtn.classList.remove('btn-secondary');
+                batchModeText.textContent = '退出批量';
+            } else {
+                batchModeBtn.classList.remove('btn-primary');
+                batchModeBtn.classList.add('btn-secondary');
+                batchModeText.textContent = '批量操作';
+            }
+
+            renderProjects();
+        }
+
+        function toggleProjectSelection(projectId) {
+            if (selectedProjects.has(projectId)) {
+                selectedProjects.delete(projectId);
+            } else {
+                selectedProjects.add(projectId);
+            }
+            updateBatchActionsBar();
+            updateSelectAllCheckbox();
+        }
+
+        function toggleSelectAll() {
+            const checkbox = document.getElementById('select-all-checkbox');
+            const filteredProjects = getFilteredAndSortedProjects();
+
+            if (checkbox.checked) {
+                filteredProjects.forEach(project => selectedProjects.add(project.id));
+            } else {
+                filteredProjects.forEach(project => selectedProjects.delete(project.id));
+            }
+
+            updateBatchActionsBar();
+            renderProjects();
+        }
+
+        function updateSelectAllCheckbox() {
+            const checkbox = document.getElementById('select-all-checkbox');
+            const filteredProjects = getFilteredAndSortedProjects();
+            const allSelected = filteredProjects.length > 0 &&
+                               filteredProjects.every(p => selectedProjects.has(p.id));
+            checkbox.checked = allSelected;
+        }
+
+        function updateBatchActionsBar() {
+            const bar = document.getElementById('batch-actions-bar');
+            const count = document.getElementById('batch-count');
+
+            if (selectedProjects.size > 0) {
+                bar.classList.add('show');
+                count.textContent = `${t('batch.selected')} ${selectedProjects.size} ${t('results.projects')}`;
+            } else {
+                bar.classList.remove('show');
+            }
+        }
+
+        function clearSelection() {
+            selectedProjects.clear();
+            updateBatchActionsBar();
+            updateSelectAllCheckbox();
+            renderProjects();
+        }
+
+        async function batchStartProjects() {
+            if (selectedProjects.size === 0) return;
+
+            const confirmed = confirm(`确定要启动 ${selectedProjects.size} 个项目吗？`);
+            if (!confirmed) return;
+
+            const projectIds = Array.from(selectedProjects);
+            let successCount = 0;
+            let failCount = 0;
+
+            for (const projectId of projectIds) {
+                try {
+                    await api('POST', `/projects/${projectId}/start`);
+                    successCount++;
+                } catch (err) {
+                    console.error(`Failed to start project ${projectId}:`, err.message);
+                    failCount++;
+                }
+            }
+
+            showToast(
+                failCount === 0 ? 'success' : 'warning',
+                '批量启动完成',
+                `成功 ${successCount} 个，失败 ${failCount} 个`
+            );
+            await fetchProjects();
+            clearSelection();
+        }
+
+        async function batchStopProjects() {
+            if (selectedProjects.size === 0) return;
+
+            const confirmed = confirm(`确定要停止 ${selectedProjects.size} 个项目吗？`);
+            if (!confirmed) return;
+
+            const projectIds = Array.from(selectedProjects);
+            let successCount = 0;
+            let failCount = 0;
+
+            for (const projectId of projectIds) {
+                try {
+                    await api('POST', `/projects/${projectId}/stop`);
+                    successCount++;
+                } catch (err) {
+                    console.error(`Failed to stop project ${projectId}:`, err.message);
+                    failCount++;
+                }
+            }
+
+            showToast(
+                failCount === 0 ? 'success' : 'warning',
+                '批量停止完成',
+                `成功 ${successCount} 个，失败 ${failCount} 个`
+            );
+            await fetchProjects();
+            clearSelection();
+        }
+
+        async function batchDeleteProjects() {
+            if (selectedProjects.size === 0) return;
+
+            const confirmed = confirm(`确定要删除 ${selectedProjects.size} 个项目吗？此操作不可撤销！`);
+            if (!confirmed) return;
+
+            const projectIds = Array.from(selectedProjects);
+            let successCount = 0;
+            let failCount = 0;
+
+            for (const projectId of projectIds) {
+                try {
+                    await api('DELETE', `/projects/${projectId}`);
+                    successCount++;
+                } catch (err) {
+                    console.error(`Failed to delete project ${projectId}:`, err.message);
+                    failCount++;
+                }
+            }
+
+            showToast(
+                failCount === 0 ? 'success' : 'warning',
+                '批量删除完成',
+                `成功 ${successCount} 个，失败 ${failCount} 个`
+            );
+            await fetchProjects();
+            clearSelection();
+        }
+
+        // =================================================================
+        // Initialize
+        // =================================================================
+        function initializeSettings() {
+            // Load saved sort order
+            const savedSort = localStorage.getItem('sortOrder');
+            if (savedSort) {
+                sortOrder = savedSort;
+                // Update UI
+                document.querySelectorAll('.sort-option').forEach(option => {
+                    const checkIcon = option.querySelector('.sort-check');
+                    if (option.dataset.sort === savedSort) {
+                        option.classList.add('active');
+                        checkIcon.style.opacity = '1';
+                    }
+                });
+            }
+        }
+
+        loadTheme();
+        loadLanguage();
+        initializeSettings();
+        fetchProjects();
+        startPolling();
+
+        // Update static texts after initial load
+        setTimeout(() => {
+            updateStaticTexts();
+        }, 100);
+    </script>
+</body>
+</html>
