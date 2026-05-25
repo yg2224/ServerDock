@@ -1609,7 +1609,8 @@
             color: var(--text-tertiary);
         }
 
-        .form-group input {
+        .form-group input,
+        .form-group textarea {
             width: 100%;
             padding: 14px 16px;
             background: var(--bg-base);
@@ -1623,12 +1624,20 @@
             box-shadow: inset 0 2px 4px rgba(0,0,0,0.2);
         }
 
-        .form-group input:focus {
+        .form-group textarea {
+            min-height: 112px;
+            resize: vertical;
+            line-height: 1.5;
+        }
+
+        .form-group input:focus,
+        .form-group textarea:focus {
             border-color: var(--accent-primary);
             box-shadow: inset 0 2px 4px rgba(0,0,0,0.2), 0 0 0 3px var(--accent-primary-subtle);
         }
 
-        .form-group input::placeholder {
+        .form-group input::placeholder,
+        .form-group textarea::placeholder {
             color: var(--text-muted);
         }
 
@@ -2011,8 +2020,8 @@
 
                 <div class="form-group">
                     <label for="project-command">Start Command</label>
-                    <input type="text" id="project-command" placeholder="npm run dev" required>
-                    <small>Command to start the dev server</small>
+                    <textarea id="project-command" placeholder="npm run dev" required></textarea>
+                    <small>One command per line. ServerDock starts all commands together.</small>
                 </div>
 
                 <div class="form-group">
@@ -2132,8 +2141,8 @@
                 'modal.directoryPlaceholder': 'C:\\dev\\my-project',
                 'modal.directoryHint': '项目文件夹的完整路径',
                 'modal.command': '启动命令',
-                'modal.commandPlaceholder': 'npm run dev',
-                'modal.commandHint': '启动开发服务器的命令',
+                'modal.commandPlaceholder': 'npm run dev\nnpm run worker',
+                'modal.commandHint': '每行 1 条命令，启动时会一起运行',
                 'modal.port': '端口',
                 'modal.portPlaceholder': '3000',
                 'modal.portHint': '服务器监听的端口',
@@ -2303,9 +2312,9 @@
                 'modal.directory': 'Directory',
                 'modal.directoryPlaceholder': 'C:\\dev\\my-project',
                 'modal.directoryHint': 'Full path to the project folder',
-                'modal.command': 'Start Command',
-                'modal.commandPlaceholder': 'npm run dev',
-                'modal.commandHint': 'Command to start the dev server',
+                'modal.command': 'Start Commands',
+                'modal.commandPlaceholder': 'npm run dev\nnpm run worker',
+                'modal.commandHint': 'One command per line. All commands start together.',
                 'modal.port': 'Port',
                 'modal.portPlaceholder': '3000',
                 'modal.portHint': 'Port the server will listen on',
@@ -2729,7 +2738,7 @@
                     <div class="project-info" onclick="selectProject('${project.id}')">
                         <div class="project-name">${escapeHtml(project.name)}</div>
                         <div class="project-meta">
-                            localhost:${project.port} &bull; ${escapeHtml(project.directory)}
+                            localhost:${project.port} &bull; ${getProjectCommands(project).length} cmd &bull; ${escapeHtml(project.directory)}
                             ${project.status === 'external' ? ` &bull; ${t('project.externalPort')}` : ''}
                         </div>
                     </div>
@@ -2759,6 +2768,16 @@
             } else {
                 return `<button class="btn btn-sm btn-primary" onclick="startProject('${project.id}')">${t('project.start')}</button>`;
             }
+        }
+
+        function getProjectCommands(project) {
+            if (Array.isArray(project.start_commands) && project.start_commands.length > 0) {
+                return project.start_commands.filter(command => command && command.trim());
+            }
+            return (project.start_command || '')
+                .split('\n')
+                .map(command => command.trim())
+                .filter(Boolean);
         }
 
         function renderLogs(logs) {
@@ -2897,7 +2916,7 @@
             document.getElementById('edit-project-id').value = id;
             document.getElementById('project-name').value = project.name;
             document.getElementById('project-directory').value = project.directory;
-            document.getElementById('project-command').value = project.start_command;
+            document.getElementById('project-command').value = getProjectCommands(project).join('\n');
             document.getElementById('project-port').value = project.port;
             document.getElementById('project-url').value = project.url || '';
             document.getElementById('modal-backdrop').classList.add('show');
@@ -2921,10 +2940,15 @@
 
             const id = document.getElementById('edit-project-id').value;
             const urlValue = document.getElementById('project-url').value.trim();
+            const commands = document.getElementById('project-command').value
+                .split('\n')
+                .map(command => command.trim())
+                .filter(Boolean);
             const data = {
                 name: document.getElementById('project-name').value,
                 directory: document.getElementById('project-directory').value,
-                start_command: document.getElementById('project-command').value,
+                start_command: commands.join('\n'),
+                start_commands: commands,
                 port: parseInt(document.getElementById('project-port').value, 10),
                 url: urlValue || null,
             };
@@ -2963,7 +2987,7 @@
             document.getElementById('edit-project-id').value = id;
             document.getElementById('project-name').value = project.name;
             document.getElementById('project-directory').value = project.directory;
-            document.getElementById('project-command').value = project.start_command;
+            document.getElementById('project-command').value = getProjectCommands(project).join('\n');
             document.getElementById('project-port').value = project.port;
             document.getElementById('project-url').value = project.url || '';
 
@@ -2980,6 +3004,7 @@
             // Update all form labels and placeholders
             const labels = document.querySelectorAll('#project-form label');
             const inputs = document.querySelectorAll('#project-form input');
+            const commandInput = document.getElementById('project-command');
             const smalls = document.querySelectorAll('#project-form small');
 
             if (labels[0]) labels[0].textContent = t('modal.name');
@@ -2992,9 +3017,9 @@
 
             if (inputs[1]) inputs[1].placeholder = t('modal.namePlaceholder');
             if (inputs[2]) inputs[2].placeholder = t('modal.directoryPlaceholder');
-            if (inputs[3]) inputs[3].placeholder = t('modal.commandPlaceholder');
-            if (inputs[4]) inputs[4].placeholder = t('modal.portPlaceholder');
-            if (inputs[5]) inputs[5].placeholder = t('modal.urlPlaceholder');
+            if (commandInput) commandInput.placeholder = t('modal.commandPlaceholder');
+            if (inputs[3]) inputs[3].placeholder = t('modal.portPlaceholder');
+            if (inputs[4]) inputs[4].placeholder = t('modal.urlPlaceholder');
 
             if (smalls[0]) smalls[0].textContent = t('modal.directoryHint');
             if (smalls[1]) smalls[1].textContent = t('modal.commandHint');
@@ -3304,7 +3329,8 @@
                 projects: projects.map(p => ({
                     name: p.name,
                     directory: p.directory,
-                    start_command: p.start_command,
+                    start_command: getProjectCommands(p).join('\n'),
+                    start_commands: getProjectCommands(p),
                     port: p.port,
                     url: p.url || null
                 }))

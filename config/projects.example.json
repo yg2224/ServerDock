@@ -3,8 +3,11 @@
     {
       "id": "my-api",
       "name": "My API Server",
-      "directory": "C:/dev/my-project/backend",
+      "directory": "/Users/me/dev/my-project/backend",
       "start_command": "python -m uvicorn main:app --reload --port 8000",
+      "start_commands": [
+        "python -m uvicorn main:app --reload --port 8000"
+      ],
       "port": 8000,
       "url": "http://localhost:8000",
       "created_at": "2026-01-01T00:00:00Z"
@@ -12,8 +15,12 @@
     {
       "id": "my-frontend",
       "name": "My Frontend",
-      "directory": "C:/dev/my-project/frontend",
-      "start_command": "npm run dev",
+      "directory": "/Users/me/dev/my-project/frontend",
+      "start_command": "npm run dev\nnpm run worker",
+      "start_commands": [
+        "npm run dev",
+        "npm run worker"
+      ],
       "port": 5173,
       "url": "http://localhost:5173",
       "created_at": "2026-01-01T00:00:00Z"

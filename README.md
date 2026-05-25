@@ -10,7 +10,7 @@
 
 专为同时处理多个服务（前端 + 后端、微服务、副项目）的开发者打造，提供可视化概览，无需 Docker Compose 或 PM2 的开销。
 
-![Python](https://img.shields.io/badge/Python-3.10+-blue) ![FastAPI](https://img.shields.io/badge/FastAPI-0.100+-green) ![Platform](https://img.shields.io/badge/Platform-Windows-lightgrey)
+![Python](https://img.shields.io/badge/Python-3.10+-blue) ![FastAPI](https://img.shields.io/badge/FastAPI-0.100+-green) ![Platform](https://img.shields.io/badge/Platform-macOS%20%7C%20Windows-lightgrey)
 
 ## ✨ 功能特性
 
@@ -18,6 +18,7 @@
 - **项目注册表** — 存储项目配置（名称、目录、启动命令、端口），支持完整的 CRUD 操作
 - **三态状态检测** — Running（我们启动的）、External（端口被外部占用）、Stopped（已停止）
 - **一键启动/停止/重启** — 从浏览器启动和终止进程
+- **多命令启动** — 一个项目可配置多条启动命令，每行一条，同时运行并汇总日志
 - **日志流式传输** — 实时查看每个项目的最后 100 行日志，每 2 秒更新
 - **进程持久化** — 管理的进程在管理器重启后仍然存活；面板会重新连接到它们
 - **强制终止** — 终止占用所需端口的外部进程，支持多方法回退
@@ -63,6 +64,7 @@
 
 ### 🛠️ 技术特性
 - **虚拟环境支持** — 相对路径如 `venv/Scripts/python` 会自动解析
+- **macOS / Windows 进程管理** — macOS 使用独立进程组和 `lsof`，Windows 使用进程组和系统命令回退
 - **fnm 集成** — 检测 Fast Node Manager 安装，使 `npm` 命令开箱即用
 - **零依赖前端** — 单个 HTML 文件，内嵌 CSS/JS，无需构建步骤
 - **文件日志** — 每个项目的日志保存到独立文件，支持持久化查看
@@ -72,7 +74,7 @@
 ### 前置要求
 
 - Python 3.10+
-- Windows（进程管理使用 Windows 特定 API）
+- macOS 或 Windows
 - [fnm](https://github.com/Schniz/fnm)（可选，用于 Node.js/npm 项目）
 
 ### 安装
@@ -85,9 +87,17 @@ pip install -r requirements.txt
 
 ### 运行
 
-**方法 1：双击 start.bat（推荐）** ⭐
+**方法 1：macOS 双击 `start.command`（推荐）** ⭐
 
-最简单的方式！直接双击 `start.bat` 文件即可启动。
+首次使用先允许执行：
+
+```bash
+chmod +x start.command
+```
+
+之后双击 `start.command` 即可启动。
+
+**Windows：双击 `start.bat`**
 
 **方法 2：命令行启动**
 
@@ -140,12 +150,20 @@ build_exe_nuitka.bat
 3. 点击保存
 4. 点击 **Start** 启动服务器
 
+启动命令支持多行，每行 1 条。例如：
+
+```text
+npm run dev
+npm run worker
+python scripts/watch.py
+```
+
 或者复制 `config/projects.example.json` 到 `config/projects.json` 并手动编辑。
 
 ## 架构
 
 ```
-浏览器 (localhost:9000)
+浏览器 (localhost:9001)
     │
     ▼  REST API (每 3 秒轮询)
 ┌─────────────────────────────────────────────┐
@@ -161,7 +179,7 @@ projects.json    基于文件的日志    psutil/socket
 
 - **后端**: FastAPI 提供 REST API + 面板 HTML
 - **前端**: 单文件 SPA，原生 JS，深色模式 UI，无框架
-- **进程管理**: `subprocess.Popen` 配合 Windows 创建标志实现干净的进程组
+- **进程管理**: `subprocess.Popen` 配合平台进程组实现干净的进程树停止
 - **状态检测**: 结合跟踪的 PID 查找和端口扫描实现三态感知
 
 ### API 端点
@@ -189,8 +207,12 @@ projects.json    基于文件的日志    psutil/socket
     {
       "id": "my-api",
       "name": "My API Server",
-      "directory": "C:/dev/my-project/backend",
-      "start_command": "python -m uvicorn main:app --reload --port 8000",
+      "directory": "/Users/me/dev/my-project/backend",
+      "start_command": "python -m uvicorn main:app --reload --port 8000\npython scripts/worker.py",
+      "start_commands": [
+        "python -m uvicorn main:app --reload --port 8000",
+        "python scripts/worker.py"
+      ],
       "port": 8000,
       "url": "http://localhost:8000"
     }
@@ -216,8 +238,8 @@ projects.json    基于文件的日志    psutil/socket
 
 ## 限制
 
-- **仅限 Windows** — 进程管理使用 Windows 特定的 subprocess 标志（`CREATE_NEW_PROCESS_GROUP`、`CREATE_NO_WINDOW`）、netstat 解析和 PowerShell 回退。Linux/macOS 支持需要平台抽象层。
-- **仅限本地** — 绑定到 `127.0.0.1:9000`，无身份验证。不适合远程访问。
+- **平台支持** — 已支持 macOS 和 Windows；Linux 未专门验证，但大部分逻辑与 macOS 路径相同。
+- **仅限本地** — 绑定到 `127.0.0.1:9001`，无身份验证。不适合远程访问。
 - **无进程接管** — 无法附加到在管理器外部启动的进程（但会检测为 "external"）。
 - **无健康检查** — 状态基于端口可用性，而非 HTTP 响应验证。
 

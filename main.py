@@ -16,6 +16,7 @@ import subprocess
 import sys
 import threading
 import uuid
+from contextlib import asynccontextmanager
 from datetime import datetime
 from pathlib import Path
 from typing import Optional
@@ -53,18 +54,29 @@ PROJECTS_FILE = CONFIG_DIR / "projects.json"
 RUNNING_FILE = CONFIG_DIR / "running.json"  # Persisted runtime state
 MANAGER_PORT = 9001
 LOG_BUFFER_SIZE = 100
+IS_WINDOWS = sys.platform.startswith("win")
 
 # fnm (Fast Node Manager) — detect Node.js installation dynamically
 def _detect_fnm_node_path() -> Optional[Path]:
     """Find the latest fnm-managed Node.js installation."""
-    fnm_versions_dir = Path.home() / "AppData/Roaming/fnm/node-versions"
-    if not fnm_versions_dir.exists():
-        return None
-    # Sort version directories descending so we pick the latest
-    for version_dir in sorted(fnm_versions_dir.iterdir(), reverse=True):
-        installation = version_dir / "installation"
-        if installation.exists() and (installation / "node.exe").exists():
-            return installation
+    candidate_dirs = []
+    if IS_WINDOWS:
+        candidate_dirs.append(Path.home() / "AppData/Roaming/fnm/node-versions")
+    else:
+        candidate_dirs.extend([
+            Path.home() / "Library/Application Support/fnm/node-versions",
+            Path.home() / ".local/share/fnm/node-versions",
+        ])
+
+    node_executable = "node.exe" if IS_WINDOWS else "bin/node"
+    for fnm_versions_dir in candidate_dirs:
+        if not fnm_versions_dir.exists():
+            continue
+        # Sort version directories descending so we pick the latest
+        for version_dir in sorted(fnm_versions_dir.iterdir(), reverse=True):
+            installation = version_dir / "installation"
+            if installation.exists() and (installation / node_executable).exists():
+                return installation if IS_WINDOWS else installation / "bin"
     return None
 
 FNM_NODE_PATH = _detect_fnm_node_path()
@@ -77,7 +89,8 @@ class ProjectCreate(BaseModel):
     """Request model for creating a new project."""
     name: str
     directory: str
-    start_command: str
+    start_command: Optional[str] = None
+    start_commands: Optional[list[str]] = None
     port: int
     url: Optional[str] = None  # Optional URL for "Open in Browser"
 
@@ -86,6 +99,7 @@ class ProjectUpdate(BaseModel):
     name: Optional[str] = None
     directory: Optional[str] = None
     start_command: Optional[str] = None
+    start_commands: Optional[list[str]] = None
     port: Optional[int] = None
     url: Optional[str] = None
 
@@ -94,7 +108,8 @@ class Project(BaseModel):
     id: str
     name: str
     directory: str
-    start_command: str
+    start_command: Optional[str] = None
+    start_commands: Optional[list[str]] = None
     port: int
     created_at: str
     url: Optional[str] = None
@@ -148,9 +163,11 @@ def save_running_state() -> None:
     with running_processes_lock:
         state = {
             project_id: {
-                "pid": info["pid"],
+                "pid": info.get("pid"),
+                "pids": info.get("pids") or [info.get("pid")],
                 "started_at": info["started_at"],
                 "log_file_path": info.get("log_file_path", ""),
+                "log_file_paths": info.get("log_file_paths") or [info.get("log_file_path", "")],
             }
             for project_id, info in running_processes.items()
         }
@@ -172,38 +189,49 @@ def restore_running_state() -> None:
 
     # First pass: identify which processes are still alive
     for project_id, info in saved_state.items():
-        pid = info.get("pid")
-        if pid and is_process_running(pid):
+        pids = info.get("pids") or [info.get("pid")]
+        live_pids = [pid for pid in pids if pid and is_process_running(pid)]
+        if live_pids:
+            info["pids"] = live_pids
+            info["pid"] = live_pids[0]
             processes_to_restore.append((project_id, info))
-            logger.info(f"Restored running process for project {project_id} (PID: {pid})")
+            logger.info(f"Restored running process for project {project_id} (PIDs: {live_pids})")
         else:
-            logger.info(f"Discarded stale process entry for project {project_id} (PID: {pid})")
+            logger.info(f"Discarded stale process entry for project {project_id} (PIDs: {pids})")
 
     # Second pass: restore processes and start log streaming threads
     for project_id, info in processes_to_restore:
         log_buffer = collections.deque(maxlen=LOG_BUFFER_SIZE)
-        log_file_path = info.get("log_file_path", "")
+        log_file_paths = [path for path in (info.get("log_file_paths") or [info.get("log_file_path", "")]) if path]
+        log_file_path = log_file_paths[0] if log_file_paths else ""
 
         # Start log streaming thread if log file exists
-        log_thread = None
-        if log_file_path and Path(log_file_path).exists():
-            log_thread = threading.Thread(
-                target=stream_logs_from_file,
-                args=(Path(log_file_path), log_buffer, project_id, True),  # start_from_end=True
-                daemon=True,
-                name=f"log-stream-{project_id}"
-            )
-            log_thread.start()
+        log_threads = []
+        for path in log_file_paths:
+            if path and Path(path).exists():
+                log_thread = threading.Thread(
+                    target=stream_logs_from_file,
+                    args=(Path(path), log_buffer, project_id, True),  # start_from_end=True
+                    daemon=True,
+                    name=f"log-stream-{project_id}"
+                )
+                log_thread.start()
+                log_threads.append(log_thread)
 
         with running_processes_lock:
             running_processes[project_id] = {
                 "process": None,  # We don't have the Popen object
+                "processes": [],
                 "pid": info.get("pid"),
+                "pids": info.get("pids") or [info.get("pid")],
                 "started_at": info.get("started_at", ""),
                 "logs": log_buffer,
-                "log_thread": log_thread,
+                "log_thread": log_threads[0] if log_threads else None,
+                "log_threads": log_threads,
                 "log_file": None,  # File was opened by the previous run
+                "log_files": [],
                 "log_file_path": log_file_path,
+                "log_file_paths": log_file_paths,
             }
         restored_count += 1
 
@@ -218,6 +246,66 @@ def get_project_by_id(project_id: str) -> Optional[dict]:
         if project["id"] == project_id:
             return project
     return None
+
+
+def normalize_start_commands(project: dict) -> list[str]:
+    """Return the non-empty commands configured for a project."""
+    commands = project.get("start_commands")
+    if isinstance(commands, list):
+        cleaned = [str(command).strip() for command in commands if str(command).strip()]
+        if cleaned:
+            return cleaned
+
+    command = (project.get("start_command") or "").strip()
+    if not command:
+        return []
+    return [line.strip() for line in command.splitlines() if line.strip()]
+
+
+def command_text(commands: list[str]) -> str:
+    """Convert command list to the legacy text representation."""
+    return "\n".join(commands)
+
+
+def normalize_project_payload(project_data: dict) -> dict:
+    """Keep start_command and start_commands in sync for older configs/frontends."""
+    commands = normalize_start_commands(project_data)
+    if not commands:
+        raise HTTPException(status_code=400, detail="At least one start command is required")
+    project_data["start_commands"] = commands
+    project_data["start_command"] = command_text(commands)
+    return project_data
+
+
+def model_to_dict(model: BaseModel) -> dict:
+    """Convert Pydantic v1/v2 models without deprecation warnings."""
+    if hasattr(model, "model_dump"):
+        return model.model_dump()
+    return model.dict()
+
+
+def model_set_fields(model: BaseModel) -> set[str]:
+    """Return fields explicitly provided by the client for Pydantic v1/v2."""
+    if hasattr(model, "model_fields_set"):
+        return model.model_fields_set
+    return getattr(model, "__fields_set__", set())
+
+
+def prepare_shell_command(command: str, project_dir: Path) -> str:
+    """Expand relative executable paths while preserving normal shell commands."""
+    first_word = command.split()[0] if command else ""
+    if not first_word:
+        return command
+
+    has_path_separator = "/" in first_word or "\\" in first_word
+    is_windows_absolute = len(first_word) > 1 and first_word[1] == ":"
+    is_absolute = Path(first_word).is_absolute() or is_windows_absolute
+    if has_path_separator and not is_absolute:
+        absolute_path = project_dir / first_word
+        command = str(absolute_path) + command[len(first_word):]
+        logger.debug(f"Expanded relative path: {first_word} -> {absolute_path}")
+
+    return command
 
 # =============================================================================
 # Port & Process Utilities
@@ -253,42 +341,13 @@ def get_process_using_port(port: int) -> Optional[psutil.Process]:
     except psutil.AccessDenied:
         logger.warning(f"[PORT LOOKUP] psutil.net_connections access denied for port {port}")
 
-    # Fallback: parse netstat output (works without admin on Windows)
-    logger.info(f"[PORT LOOKUP] Trying netstat fallback for port {port}")
-    try:
-        result = subprocess.run(
-            "netstat -ano",
-            capture_output=True,
-            text=True,
-            timeout=5,
-            shell=True,
-        )
-        logger.info(f"[PORT LOOKUP] netstat returned code {result.returncode}, stdout len={len(result.stdout)}, stderr={result.stderr[:100] if result.stderr else 'none'}")
-
-        found_listening = False
-        for line in result.stdout.splitlines():
-            if "LISTENING" in line and str(port) in line:
-                found_listening = True
-                logger.info(f"[PORT LOOKUP] Candidate line: {line.strip()}")
-                parts = line.split()
-                if len(parts) >= 5:
-                    local_addr = parts[1]
-                    logger.info(f"[PORT LOOKUP] local_addr={local_addr}, checking endswith :{port}")
-                    if local_addr.endswith(f":{port}"):
-                        try:
-                            pid = int(parts[-1])
-                            logger.info(f"[PORT LOOKUP] SUCCESS: port {port} -> PID {pid}")
-                            return psutil.Process(pid)
-                        except ValueError as e:
-                            logger.warning(f"[PORT LOOKUP] Failed to parse PID from netstat: {e}")
-                        except (psutil.NoSuchProcess, psutil.AccessDenied) as e:
-                            logger.warning(f"[PORT LOOKUP] Failed to get process {parts[-1]}: {e}")
-
-        if not found_listening:
-            logger.info(f"[PORT LOOKUP] No LISTENING lines found containing {port}")
-
-    except Exception as e:
-        logger.warning(f"[PORT LOOKUP] Netstat fallback failed for port {port}: {type(e).__name__}: {e}")
+    # Fallback: use OS-native tools when psutil cannot expose the PID.
+    pid = get_pid_on_port(port)
+    if pid:
+        try:
+            return psutil.Process(pid)
+        except (psutil.NoSuchProcess, psutil.AccessDenied) as e:
+            logger.warning(f"[PORT LOOKUP] Failed to get process {pid}: {e}")
 
     logger.warning(f"[PORT LOOKUP] Could not find process for port {port}")
     return None
@@ -307,6 +366,17 @@ def kill_process_tree(pid: int) -> dict:
     try:
         parent = psutil.Process(pid)
         children = parent.children(recursive=True)
+
+        if not IS_WINDOWS:
+            try:
+                os.killpg(pid, signal.SIGTERM)
+            except ProcessLookupError:
+                pass
+            except PermissionError:
+                failed.append(pid)
+                logger.error(f"Access denied terminating process group {pid}")
+            except Exception as e:
+                logger.debug(f"Process group terminate failed for {pid}: {e}")
 
         # Terminate children first, then parent
         for child in children:
@@ -330,6 +400,11 @@ def kill_process_tree(pid: int) -> dict:
         # Force kill any survivors
         for p in alive:
             try:
+                if not IS_WINDOWS and p.pid == pid:
+                    try:
+                        os.killpg(pid, signal.SIGKILL)
+                    except Exception:
+                        pass
                 p.kill()
                 killed.append(p.pid)
                 logger.warning(f"Force killed process {p.pid}")
@@ -370,13 +445,15 @@ def get_project_status(project: dict) -> str:
     # Check if we have a tracked process for this project
     with running_processes_lock:
         if project_id in running_processes:
-            pid = running_processes[project_id]["pid"]
-            if is_process_running(pid):
+            process_info = running_processes[project_id]
+            pids = process_info.get("pids") or [process_info.get("pid")]
+            live_pids = [pid for pid in pids if pid and is_process_running(pid)]
+            if live_pids:
                 return "running"
             else:
                 # Process died, clean up our tracking
                 del running_processes[project_id]
-                logger.info(f"Cleaned up dead process for project {project_id} (PID: {pid})")
+                logger.info(f"Cleaned up dead processes for project {project_id} (PIDs: {pids})")
 
     # Check if port is in use by something external
     if is_port_in_use(port):
@@ -464,11 +541,16 @@ def start_project_process(project: dict) -> dict:
     """
     project_id = project["id"]
     project_name = project.get("name", project_id)
+    commands = normalize_start_commands(project)
+    if not commands:
+        raise HTTPException(status_code=400, detail="At least one start command is required")
 
     # Check if already running (thread-safe)
     with running_processes_lock:
         if project_id in running_processes:
-            if is_process_running(running_processes[project_id]["pid"]):
+            process_info = running_processes[project_id]
+            pids = process_info.get("pids") or [process_info.get("pid")]
+            if any(pid and is_process_running(pid) for pid in pids):
                 raise HTTPException(status_code=400, detail="Project is already running")
             else:
                 # Clean up stale entry
@@ -491,93 +573,107 @@ def start_project_process(project: dict) -> dict:
         )
 
     try:
-        # Start the process
-        # shell=True needed for Windows commands like npm, also handles command parsing
-        # CREATE_NEW_PROCESS_GROUP allows us to terminate the process tree
+        # shell=True handles commands like npm scripts and user-defined shell snippets.
+        # Each command gets a platform process group/session so stop can clean the tree.
 
         # Build environment with fnm node path for npm commands
         env = os.environ.copy()
         if FNM_NODE_PATH and FNM_NODE_PATH.exists():
             env["PATH"] = str(FNM_NODE_PATH) + os.pathsep + env.get("PATH", "")
 
-        logger.info(f"Starting project {project_name}: {project['start_command']}")
+        logger.info(f"Starting project {project_name}: {len(commands)} command(s)")
 
-        # Windows process detachment strategy:
-        # 1. CREATE_NEW_PROCESS_GROUP: Allows clean termination via taskkill
-        # 2. CREATE_BREAKAWAY_FROM_JOB: Attempts to break from parent's job object
-        # 3. CREATE_NO_WINDOW: Prevents console windows from popping up
-        #
-        # The key fix for persistence is file-based logging instead of pipes.
-        # When stdout goes to a file instead of PIPE, the child process doesn't die
-        # when the parent's pipe handle closes.
-        creation_flags = (
-            subprocess.CREATE_NEW_PROCESS_GROUP |
-            subprocess.CREATE_BREAKAWAY_FROM_JOB |
-            subprocess.CREATE_NO_WINDOW
-        )
+        creation_flags = 0
+        popen_kwargs = {}
+        if IS_WINDOWS:
+            creation_flags = (
+                subprocess.CREATE_NEW_PROCESS_GROUP |
+                subprocess.CREATE_BREAKAWAY_FROM_JOB |
+                subprocess.CREATE_NO_WINDOW
+            )
+            popen_kwargs["creationflags"] = creation_flags
+        else:
+            # New session gives every command its own process group for clean tree stops.
+            popen_kwargs["start_new_session"] = True
 
-        # Create log file for this project
         project_log_dir = LOG_DIR / "projects"
         project_log_dir.mkdir(parents=True, exist_ok=True)
-        log_file_path = project_log_dir / f"{project_id}.log"
-
-        # Open log file for writing (truncate on start)
-        log_file = open(log_file_path, "w", encoding="utf-8")
-
-        # Build command: expand relative paths like venv/Scripts/python to absolute paths
-        # This is needed because shell=True with cwd doesn't resolve relative executables
-        project_dir = Path(project["directory"].replace("/", "\\"))
-        start_command = project["start_command"]
-
-        # If command starts with a relative path (contains / or \ but doesn't start with drive letter)
-        # expand it to absolute path based on project directory
-        first_word = start_command.split()[0] if start_command else ""
-        if ("/" in first_word or "\\" in first_word) and not (len(first_word) > 1 and first_word[1] == ":"):
-            # It's a relative path like "venv/Scripts/python" - make it absolute
-            relative_path = first_word.replace("/", "\\")
-            absolute_path = project_dir / relative_path
-            start_command = str(absolute_path) + start_command[len(first_word):]
-            logger.debug(f"Expanded relative path: {first_word} -> {absolute_path}")
-
-        process = subprocess.Popen(
-            start_command,
-            shell=True,
-            stdout=log_file,
-            stderr=subprocess.STDOUT,
-            creationflags=creation_flags,
-            cwd=str(project_dir),
-            env=env,
-        )
-
-        # Set up log streaming from file
+        project_dir = Path(project["directory"])
         log_buffer = collections.deque(maxlen=LOG_BUFFER_SIZE)
-        log_thread = threading.Thread(
-            target=stream_logs_from_file,
-            args=(log_file_path, log_buffer, project_id),
-            daemon=True,
-            name=f"log-stream-{project_id}"
-        )
-        log_thread.start()
+        processes = []
+        log_files = []
+        log_file_paths = []
+        log_threads = []
+
+        try:
+            for index, command in enumerate(commands, start=1):
+                start_command = prepare_shell_command(command, project_dir)
+                log_file_path = project_log_dir / f"{project_id}-{index}.log"
+                log_file = open(log_file_path, "w", encoding="utf-8")
+                log_files.append(log_file)
+                log_file_paths.append(str(log_file_path))
+                log_file.write(f"$ {command}\n")
+                log_file.flush()
+
+                process = subprocess.Popen(
+                    start_command,
+                    shell=True,
+                    stdout=log_file,
+                    stderr=subprocess.STDOUT,
+                    cwd=str(project_dir),
+                    env=env,
+                    **popen_kwargs,
+                )
+                processes.append(process)
+                logger.info(f"Started command {index}/{len(commands)} for {project_name} with PID {process.pid}")
+
+                log_thread = threading.Thread(
+                    target=stream_logs_from_file,
+                    args=(log_file_path, log_buffer, project_id),
+                    daemon=True,
+                    name=f"log-stream-{project_id}-{index}"
+                )
+                log_thread.start()
+                log_threads.append(log_thread)
+        except Exception:
+            for process in processes:
+                try:
+                    kill_process_tree(process.pid)
+                except Exception:
+                    logger.exception(f"Failed to clean up partially started PID {process.pid}")
+            for log_file in log_files:
+                try:
+                    log_file.close()
+                except Exception:
+                    pass
+            raise
 
         started_at = datetime.utcnow().isoformat() + "Z"
+        pids = [process.pid for process in processes]
 
         # Track the running process (thread-safe)
         with running_processes_lock:
             running_processes[project_id] = {
-                "process": process,
-                "pid": process.pid,
+                "process": processes[0],
+                "processes": processes,
+                "pid": pids[0],
+                "pids": pids,
                 "started_at": started_at,
                 "logs": log_buffer,
-                "log_thread": log_thread,
-                "log_file": log_file,  # Keep handle to close on stop
-                "log_file_path": str(log_file_path),
+                "log_thread": log_threads[0] if log_threads else None,
+                "log_threads": log_threads,
+                "log_file": log_files[0] if log_files else None,
+                "log_files": log_files,
+                "log_file_path": log_file_paths[0] if log_file_paths else "",
+                "log_file_paths": log_file_paths,
+                "commands": commands,
             }
 
         # Persist running state to survive manager restarts
         save_running_state()
 
-        logger.info(f"Started project {project_name} with PID {process.pid}")
-        return {"pid": process.pid, "started_at": started_at}
+        logger.info(f"Started project {project_name} with PIDs {pids}")
+        return {"pid": pids[0], "pids": pids, "started_at": started_at}
 
     except Exception as e:
         logger.error(f"Failed to start project {project_name}: {e}")
@@ -597,41 +693,19 @@ def stop_project_process(project_id: str) -> None:
         if project_id not in running_processes:
             raise HTTPException(status_code=400, detail="Project is not running")
         process_info = running_processes[project_id]
-        pid = process_info["pid"]
-        process_obj = process_info.get("process")
-        log_file = process_info.get("log_file")
+        pids = process_info.get("pids") or [process_info.get("pid")]
+        processes = process_info.get("processes") or [process_info.get("process")]
+        log_files = process_info.get("log_files") or [process_info.get("log_file")]
 
-    logger.info(f"Stopping project {project_id} (PID: {pid})")
+    logger.info(f"Stopping project {project_id} (PIDs: {pids})")
 
-    try:
-        parent = psutil.Process(pid)
-        children = parent.children(recursive=True)
-
-        # Terminate children first, then parent
-        for child in children:
-            try:
-                child.terminate()
-            except psutil.NoSuchProcess:
-                pass
-
-        parent.terminate()
-
-        # Wait briefly for graceful shutdown
-        gone, alive = psutil.wait_procs([parent] + children, timeout=3)
-
-        # Force kill any survivors
-        for p in alive:
-            try:
-                p.kill()
-                logger.warning(f"Force killed process {p.pid}")
-            except psutil.NoSuchProcess:
-                pass
-
-    except psutil.NoSuchProcess:
-        logger.info(f"Process {pid} already terminated")
+    for pid in pids:
+        if not pid:
+            continue
+        kill_process_tree(pid)
 
     # Clean up the Popen object to release resources
-    if process_obj is not None:
+    for process_obj in [process for process in processes if process is not None]:
         try:
             process_obj.wait(timeout=1)  # Reap the zombie process
         except subprocess.TimeoutExpired:
@@ -639,8 +713,8 @@ def stop_project_process(project_id: str) -> None:
         except Exception as e:
             logger.warning(f"Error waiting for process cleanup: {e}")
 
-    # Close the log file handle
-    if log_file is not None:
+    # Close the log file handles
+    for log_file in [handle for handle in log_files if handle is not None]:
         try:
             log_file.close()
         except Exception as e:
@@ -659,14 +733,16 @@ def stop_project_process(project_id: str) -> None:
 # FastAPI Application
 # =============================================================================
 
-app = FastAPI(title="ServerDock", version="1.0.0")
-
-@app.on_event("startup")
-async def startup_event():
+@asynccontextmanager
+async def lifespan(app: FastAPI):
     """Restore running state on startup."""
     logger.info("ServerDock starting up...")
     restore_running_state()
     logger.info(f"ServerDock ready on port {MANAGER_PORT}")
+    yield
+
+
+app = FastAPI(title="ServerDock", version="1.0.0", lifespan=lifespan)
 
 # -----------------------------------------------------------------------------
 # Static Files
@@ -709,20 +785,22 @@ async def list_projects():
 async def create_project(project: ProjectCreate):
     """Create a new project configuration."""
     projects = load_projects()
+    project_data = normalize_project_payload(model_to_dict(project))
 
     # Generate unique ID
     new_id = uuid.uuid4().hex[:8]
 
     new_project = {
         "id": new_id,
-        "name": project.name,
-        "directory": project.directory,
-        "start_command": project.start_command,
-        "port": project.port,
+        "name": project_data["name"],
+        "directory": project_data["directory"],
+        "start_command": project_data["start_command"],
+        "start_commands": project_data["start_commands"],
+        "port": project_data["port"],
         "created_at": datetime.utcnow().isoformat() + "Z",
     }
-    if project.url:
-        new_project["url"] = project.url
+    if project_data.get("url"):
+        new_project["url"] = project_data["url"]
 
     projects.append(new_project)
     save_projects(projects)
@@ -737,12 +815,16 @@ async def update_project(project_id: str, update: ProjectUpdate):
     for i, project in enumerate(projects):
         if project["id"] == project_id:
             # Apply updates
+            set_fields = model_set_fields(update)
+            update_data = {key: value for key, value in model_to_dict(update).items() if key in set_fields}
             if update.name is not None:
                 project["name"] = update.name
             if update.directory is not None:
                 project["directory"] = update.directory
-            if update.start_command is not None:
-                project["start_command"] = update.start_command
+            if "start_command" in update_data or "start_commands" in update_data:
+                command_data = normalize_project_payload({**project, **update_data})
+                project["start_command"] = command_data["start_command"]
+                project["start_commands"] = command_data["start_commands"]
             if update.port is not None:
                 project["port"] = update.port
             if update.url is not None:
@@ -826,9 +908,27 @@ async def restart_project(project_id: str):
 
 def get_pid_on_port(port: int) -> Optional[int]:
     """
-    Get the PID listening on a port using netstat.
+    Get the PID listening on a port using the best available platform command.
     Returns just the PID, not a psutil.Process (which may fail for zombie PIDs).
     """
+    if not IS_WINDOWS:
+        try:
+            result = subprocess.run(
+                ["lsof", "-nP", f"-iTCP:{port}", "-sTCP:LISTEN", "-t"],
+                capture_output=True,
+                text=True,
+                timeout=5,
+            )
+            for line in result.stdout.splitlines():
+                line = line.strip()
+                if line.isdigit():
+                    return int(line)
+        except FileNotFoundError:
+            logger.warning("lsof is not available for port lookup")
+        except Exception as e:
+            logger.warning(f"lsof port lookup failed for {port}: {e}")
+        return None
+
     try:
         result = subprocess.run(
             "netstat -ano",
@@ -861,6 +961,16 @@ def force_kill_pid(pid: int) -> dict:
             return {"success": True, "method": "psutil", "details": result}
     except Exception as e:
         logger.warning(f"psutil kill failed for PID {pid}: {e}")
+
+    if not IS_WINDOWS:
+        try:
+            os.kill(pid, signal.SIGKILL)
+            return {"success": True, "method": "kill", "details": f"Sent SIGKILL to {pid}"}
+        except ProcessLookupError:
+            return {"success": True, "method": "kill", "details": f"PID {pid} already exited"}
+        except Exception as e:
+            logger.warning(f"kill fallback failed for PID {pid}: {e}")
+            return {"success": False, "method": None, "details": "All kill methods failed"}
 
     # Method 2: taskkill via cmd (handles some cases psutil can't)
     try:
@@ -917,12 +1027,13 @@ async def kill_port(port: int):
             with running_processes_lock:
                 if project["id"] in running_processes:
                     # Use our normal stop which has better cleanup
+                    pids = running_processes[project["id"]].get("pids") or [running_processes[project["id"]].get("pid")]
                     stop_project_process(project["id"])
                     logger.info(f"Stopped managed project on port {port}")
                     return {
                         "status": "stopped",
                         "message": f"Stopped managed project: {project['name']}",
-                        "killed": [running_processes.get(project["id"], {}).get("pid")],
+                        "killed": pids,
                         "failed": []
                     }
 
